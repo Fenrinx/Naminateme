@@ -98,22 +98,16 @@ const BROWSER_FINGERPRINT_KEY = "premia_isp_2025_browser_fingerprint";
 
 // ==================== ЗАЩИТА ОТ МУЛЬТИАККАУНТОВ ====================
 
-// Генерируем уникальный отпечаток браузера
 function generateBrowserFingerprint() {
     let fingerprint = '';
-    
-    // Используем различные характеристики браузера
     fingerprint += navigator.userAgent;
     fingerprint += navigator.language;
     fingerprint += screen.colorDepth;
     fingerprint += (screen.height || '') + (screen.width || '');
     fingerprint += new Date().getTimezoneOffset();
-    
-    // Хэшируем для конфиденциальности
     return btoa(fingerprint).substring(0, 32);
 }
 
-// Проверяем, не голосовал ли уже этот браузер
 function checkExistingVote() {
     const fingerprint = localStorage.getItem(BROWSER_FINGERPRINT_KEY);
     if (!fingerprint) return null;
@@ -122,7 +116,6 @@ function checkExistingVote() {
     return Object.values(allUsers).find(user => user.browserFingerprint === fingerprint);
 }
 
-// Сохраняем отпечаток браузера
 function saveBrowserFingerprint() {
     const fingerprint = generateBrowserFingerprint();
     localStorage.setItem(BROWSER_FINGERPRINT_KEY, fingerprint);
@@ -131,7 +124,6 @@ function saveBrowserFingerprint() {
 
 // ==================== FIREBASE ФУНКЦИИ ====================
 
-// Сохранить голос в Firebase
 async function saveVoteToFirebase(nominationId, studentName) {
     try {
         if (!currentUser) return;
@@ -147,10 +139,7 @@ async function saveVoteToFirebase(nominationId, studentName) {
             browserFingerprint: currentUser.browserFingerprint
         };
 
-        // Сохраняем в Firebase
         await db.collection('votes').add(voteData);
-        
-        // Сохраняем локально для быстрого доступа
         saveToLocalStorage(currentUser.id, nominationId, studentName);
         
         showNotification('Голос сохранен!', 'success');
@@ -159,14 +148,12 @@ async function saveVoteToFirebase(nominationId, studentName) {
         
     } catch (error) {
         console.error('Ошибка сохранения в Firebase:', error);
-        // Сохраняем локально при ошибке
         saveToLocalStorage(currentUser.id, nominationId, studentName);
         showNotification('Голос сохранен локально', 'info');
         return true;
     }
 }
 
-// Получить все голоса из Firebase
 async function getAllVotesFromFirebase() {
     try {
         const snapshot = await db.collection('votes').orderBy('timestamp', 'desc').get();
@@ -181,11 +168,10 @@ async function getAllVotesFromFirebase() {
         return votes;
     } catch (error) {
         console.error('Ошибка загрузки из Firebase:', error);
-        return getAllVotes(); // Возвращаем локальные данные
+        return getAllVotes();
     }
 }
 
-// Получить детальную информацию о голосах
 async function getDetailedVotesFromFirebase() {
     try {
         const snapshot = await db.collection('votes').orderBy('timestamp', 'desc').get();
@@ -326,11 +312,9 @@ async function initApp() {
         });
     }
     
-    // ПРОВЕРКА: Не голосовал ли уже этот пользователь
     const existingVoter = checkExistingVote();
     if (existingVoter) {
         showNotification(`Вы уже проголосовали как: ${existingVoter.name}`, 'error');
-        // Автоматически входим под существующим пользователем
         const savedUser = localStorage.getItem(CURRENT_USER_KEY);
         if (savedUser) {
             try {
@@ -375,6 +359,10 @@ function showVotingSection() {
     if (currentUser) {
         const userNameDisplay = document.getElementById('userNameDisplay');
         if (userNameDisplay) userNameDisplay.textContent = currentUser.name;
+        
+        // Скрываем кнопку выхода для обычных пользователей
+        const logoutBtn = document.querySelector('.user-info .logout-button');
+        if (logoutBtn) logoutBtn.style.display = 'none';
     }
     
     renderNominations();
@@ -401,7 +389,6 @@ function registerUser() {
         return;
     }
     
-    // ПРОВЕРКА: Не зарегистрирован ли уже такой email
     const allUsers = getAllUsers();
     const existingUser = Object.values(allUsers).find(user => 
         user.email.toLowerCase() === userEmail.toLowerCase()
@@ -412,7 +399,6 @@ function registerUser() {
         return;
     }
     
-    // ПРОВЕРКА: Не голосовал ли уже этот браузер
     const existingVoter = checkExistingVote();
     if (existingVoter) {
         showNotification(`Вы уже проголосовали как: ${existingVoter.name}`, 'error');
@@ -530,9 +516,15 @@ function openStudentSelection(nominationId) {
     const userVotes = allVotes[currentUser?.id] || {};
     const currentSelection = userVotes[nominationId];
 
-    const filteredStudents = nomination.gender ? 
-        students.filter(student => student.gender === nomination.gender) : 
-        students;
+    // ВАЖНО: Только для "Лучший парень" и "Лучшая девушка" фильтруем по полу
+    // Для остальных номинаций - ВСЕ студенты СОРТИРОВАННЫЕ ПО АЛФАВИТУ
+    let filteredStudents;
+    if (nomination.gender) {
+        filteredStudents = students.filter(student => student.gender === nomination.gender);
+    } else {
+        // Для дополнительных номинаций - все студенты, сортированные по алфавиту
+        filteredStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
+    }
 
     filteredStudents.forEach((student) => {
         const studentCard = document.createElement('div');
@@ -542,6 +534,18 @@ function openStudentSelection(nominationId) {
         
         const photoDiv = document.createElement('div');
         photoDiv.className = 'student-photo';
+        
+        // Для дополнительных номинаций используем СВЕТЛЫЙ общий цвет обводки
+        if (!nomination.gender) {
+            photoDiv.style.borderColor = 'rgba(255, 248, 240, 0.6)'; // СВЕТЛАЯ обводка
+        } else {
+            // Для главных номинаций - цвет по полу
+            if (student.gender === 'female') {
+                photoDiv.style.borderColor = '#ff6b9d'; // Розовый для девушек
+            } else {
+                photoDiv.style.borderColor = '#4fc3f7'; // Голубой для парней
+            }
+        }
         
         const img = document.createElement('img');
         img.src = student.photo;
@@ -554,7 +558,7 @@ function openStudentSelection(nominationId) {
         img.onerror = function() {
             console.log(`Ошибка загрузки фото: ${student.photo}`);
             img.style.display = 'none';
-            showInitials(photoDiv, student);
+            showInitials(photoDiv, student, nomination);
         };
         
         img.onload = function() {
@@ -564,7 +568,7 @@ function openStudentSelection(nominationId) {
         
         photoDiv.appendChild(img);
         
-        showInitials(photoDiv, student);
+        showInitials(photoDiv, student, nomination);
 
         studentCard.innerHTML = `<div class="student-name">${student.name}</div>`;
         studentCard.insertBefore(photoDiv, studentCard.firstChild);
@@ -576,7 +580,7 @@ function openStudentSelection(nominationId) {
     modal.style.display = 'block';
 }
 
-function showInitials(photoDiv, student) {
+function showInitials(photoDiv, student, nomination) {
     const initials = student.name.split(' ').map(n => n[0]).join('');
     const initialsSpan = document.createElement('span');
     initialsSpan.textContent = initials;
@@ -593,10 +597,16 @@ function showInitials(photoDiv, student) {
     
     photoDiv.appendChild(initialsSpan);
     
-    if (student.gender === 'female') {
-        photoDiv.style.background = 'linear-gradient(135deg, #ff6b9d, #c2185b)';
+    // Для дополнительных номинаций - общий цвет фона
+    if (!nomination.gender) {
+        photoDiv.style.background = 'linear-gradient(135deg, #1e1e24, rgba(146, 20, 12, 0.7))';
     } else {
-        photoDiv.style.background = 'linear-gradient(135deg, #4fc3f7, #1565c0)';
+        // Для главных номинаций - цвет по полу
+        if (student.gender === 'female') {
+            photoDiv.style.background = 'linear-gradient(135deg, #ff6b9d, #c2185b)';
+        } else {
+            photoDiv.style.background = 'linear-gradient(135deg, #4fc3f7, #1565c0)';
+        }
     }
 }
 
@@ -696,6 +706,28 @@ function showAdminPanel() {
 function hideAdminPanel() {
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) adminPanel.style.display = 'none';
+}
+
+function adminLogout() {
+    hideAdminPanel();
+    showNotification('Вы вышли из админ-панели', 'info');
+}
+
+// ВЫХОД ИЗ УЧЕТНОЙ ЗАПИСИ - ТОЛЬКО ДЛЯ АДМИНА
+function logoutFromAccount() {
+    // Проверяем, является ли пользователь админом
+    const passwordInput = document.getElementById('adminPassword');
+    if (!passwordInput) return;
+    
+    const password = prompt('Введите админ-пароль для выхода:');
+    if (password === ADMIN_PASSWORD) {
+        localStorage.removeItem(CURRENT_USER_KEY);
+        currentUser = null;
+        showRegistrationSection();
+        showNotification('Вы вышли из системы', 'info');
+    } else if (password !== null) {
+        showNotification('Неверный пароль! Выход доступен только администратору.', 'error');
+    }
 }
 
 async function showLiveResults() {
@@ -921,23 +953,85 @@ async function exportData() {
     }
 }
 
-function resetVoting() {
-    if (confirm('ВНИМАНИЕ! Это действие сбросит ВСЕ данные голосования. Продолжить?')) {
-        const currentUserBackup = localStorage.getItem(CURRENT_USER_KEY);
-        
-        localStorage.removeItem(ALL_VOTES_KEY);
-        localStorage.removeItem(ALL_USERS_KEY);
-        
-        if (currentUserBackup) {
-            localStorage.setItem(CURRENT_USER_KEY, currentUserBackup);
-            currentUser = JSON.parse(currentUserBackup);
+async function resetVoting() {
+    if (confirm('ВНИМАНИЕ! Это действие сбросит ВСЕ данные голосования. Все голоса будут удалены без возможности восстановления. Продолжить?')) {
+        try {
+            const votesSnapshot = await db.collection('votes').get();
+            
+            if (votesSnapshot.size > 0) {
+                const batch = db.batch();
+                votesSnapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                console.log(`Удалено ${votesSnapshot.size} голосов из Firebase`);
+            }
+
+            localStorage.removeItem(ALL_VOTES_KEY);
+            localStorage.removeItem(ALL_USERS_KEY);
+            localStorage.removeItem(BROWSER_FINGERPRINT_KEY);
+            
+            const currentUserBackup = localStorage.getItem(CURRENT_USER_KEY);
+            if (currentUserBackup) {
+                const user = JSON.parse(currentUserBackup);
+                const newFingerprint = generateBrowserFingerprint();
+                
+                user.browserFingerprint = newFingerprint;
+                localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+                currentUser = user;
+                
+                const allUsers = {};
+                allUsers[user.id] = {
+                    name: user.name,
+                    email: user.email,
+                    registeredAt: new Date().toISOString(),
+                    browserFingerprint: newFingerprint
+                };
+                saveAllUsers(allUsers);
+                
+                localStorage.setItem(BROWSER_FINGERPRINT_KEY, newFingerprint);
+            }
+
+            showNotification('✅ Все данные голосования полностью сброшены! Теперь можно голосовать заново.', 'success');
+
+            setTimeout(() => {
+                renderNominations();
+                updateStats();
+                hideAdminPanel();
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Ошибка при сбросе голосования:', error);
+            showNotification('❌ Ошибка при сбросе данных: ' + error.message, 'error');
         }
-        
-        showNotification('Локальные данные сброшены!', 'success');
-        setTimeout(() => {
-            renderNominations();
-            updateStats();
-        }, 1000);
+    }
+}
+
+async function forceReset() {
+    if (confirm('СИЛЬНЫЙ СБРОС! Удалить ВСЕ данные безвозвратно?')) {
+        try {
+            const votesRef = db.collection('votes');
+            const snapshot = await votesRef.get();
+            
+            const deletions = [];
+            snapshot.forEach(doc => {
+                deletions.push(votesRef.doc(doc.id).delete());
+            });
+            
+            await Promise.all(deletions);
+            
+            localStorage.clear();
+            
+            showNotification('💥 ПОЛНЫЙ СБРОС ВЫПОЛНЕН!', 'success');
+            setTimeout(() => location.reload(), 2000);
+            
+        } catch (error) {
+            showNotification('Ошибка сброса: ' + error.message, 'error');
+        }
     }
 }
 
@@ -953,7 +1047,6 @@ function updateStats() {
     
     if (completedElement) completedElement.textContent = `${completedNominations}/${nominations.length}`;
     
-    // Подсчет общего количества голосов
     let totalVotesCount = 0;
     Object.values(allVotes).forEach(userVotes => {
         totalVotesCount += Object.values(userVotes).filter(v => v).length;
@@ -998,14 +1091,9 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Убираем функцию выхода
-function logout() {
-    // Функция удалена - выход невозможен
-}
-
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Запускаем приложение с защитой от мультиаккаунтов...');
+    console.log('🚀 Запускаем приложение...');
     
     const registerButton = document.querySelector('.login-button');
     if (registerButton) registerButton.onclick = registerUser;
@@ -1025,3 +1113,6 @@ window.showAllVoters = showAllVoters;
 window.closeResults = closeResults;
 window.exportData = exportData;
 window.resetVoting = resetVoting;
+window.forceReset = forceReset;
+window.adminLogout = adminLogout;
+window.logoutFromAccount = logoutFromAccount;

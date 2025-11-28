@@ -56,6 +56,7 @@
 
                 <div class="user-info">
                     <span id="userNameDisplay"></span>
+                    <button class="logout-button" onclick="logoutFromAccount()" title="Выйти из учетной записи (только для админа)">🚪</button>
                 </div>
             </div>
 
@@ -111,6 +112,8 @@
             <button class="admin-button" onclick="showAllVoters()">👥 Все проголосовавшие</button>
             <button class="admin-button" onclick="exportData()">📁 Экспорт данных</button>
             <button class="admin-button" onclick="resetVoting()">🔄 Сбросить голосование</button>
+            <button class="admin-button" onclick="forceReset()" style="background: linear-gradient(135deg, #1e1e24, rgba(220, 53, 69, 0.8));">💥 Сильный сброс (отладка)</button>
+            <button class="admin-button" onclick="adminLogout()">🚪 Выйти из админ-панели</button>
         </div>
     </div>
 
