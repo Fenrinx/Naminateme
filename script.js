@@ -94,6 +94,40 @@ const ADMIN_PASSWORD = "admin2024";
 const ALL_VOTES_KEY = "premia_isp_2025_all_votes";
 const ALL_USERS_KEY = "premia_isp_2025_all_users";
 const CURRENT_USER_KEY = "premia_isp_2025_current_user";
+const BROWSER_FINGERPRINT_KEY = "premia_isp_2025_browser_fingerprint";
+
+// ==================== ЗАЩИТА ОТ МУЛЬТИАККАУНТОВ ====================
+
+// Генерируем уникальный отпечаток браузера
+function generateBrowserFingerprint() {
+    let fingerprint = '';
+    
+    // Используем различные характеристики браузера
+    fingerprint += navigator.userAgent;
+    fingerprint += navigator.language;
+    fingerprint += screen.colorDepth;
+    fingerprint += (screen.height || '') + (screen.width || '');
+    fingerprint += new Date().getTimezoneOffset();
+    
+    // Хэшируем для конфиденциальности
+    return btoa(fingerprint).substring(0, 32);
+}
+
+// Проверяем, не голосовал ли уже этот браузер
+function checkExistingVote() {
+    const fingerprint = localStorage.getItem(BROWSER_FINGERPRINT_KEY);
+    if (!fingerprint) return null;
+    
+    const allUsers = getAllUsers();
+    return Object.values(allUsers).find(user => user.browserFingerprint === fingerprint);
+}
+
+// Сохраняем отпечаток браузера
+function saveBrowserFingerprint() {
+    const fingerprint = generateBrowserFingerprint();
+    localStorage.setItem(BROWSER_FINGERPRINT_KEY, fingerprint);
+    return fingerprint;
+}
 
 // ==================== FIREBASE ФУНКЦИИ ====================
 
@@ -109,7 +143,8 @@ async function saveVoteToFirebase(nominationId, studentName) {
             nominationId: nominationId,
             nominationTitle: nominations.find(n => n.id === nominationId)?.title,
             studentName: studentName,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            browserFingerprint: currentUser.browserFingerprint
         };
 
         // Сохраняем в Firebase
@@ -291,6 +326,23 @@ async function initApp() {
         });
     }
     
+    // ПРОВЕРКА: Не голосовал ли уже этот пользователь
+    const existingVoter = checkExistingVote();
+    if (existingVoter) {
+        showNotification(`Вы уже проголосовали как: ${existingVoter.name}`, 'error');
+        // Автоматически входим под существующим пользователем
+        const savedUser = localStorage.getItem(CURRENT_USER_KEY);
+        if (savedUser) {
+            try {
+                currentUser = JSON.parse(savedUser);
+                showVotingSection();
+                return;
+            } catch (e) {
+                localStorage.removeItem(CURRENT_USER_KEY);
+            }
+        }
+    }
+    
     const savedUser = localStorage.getItem(CURRENT_USER_KEY);
     if (savedUser) {
         try {
@@ -349,18 +401,39 @@ function registerUser() {
         return;
     }
     
+    // ПРОВЕРКА: Не зарегистрирован ли уже такой email
+    const allUsers = getAllUsers();
+    const existingUser = Object.values(allUsers).find(user => 
+        user.email.toLowerCase() === userEmail.toLowerCase()
+    );
+    
+    if (existingUser) {
+        showNotification('Этот email уже зарегистрирован! Один человек может голосовать только один раз.', 'error');
+        return;
+    }
+    
+    // ПРОВЕРКА: Не голосовал ли уже этот браузер
+    const existingVoter = checkExistingVote();
+    if (existingVoter) {
+        showNotification(`Вы уже проголосовали как: ${existingVoter.name}`, 'error');
+        return;
+    }
+    
+    const browserFingerprint = saveBrowserFingerprint();
+    
     currentUser = {
         name: userName,
         email: userEmail,
         id: Date.now().toString(),
-        registeredAt: new Date().toISOString()
+        registeredAt: new Date().toISOString(),
+        browserFingerprint: browserFingerprint
     };
     
-    const allUsers = getAllUsers();
     allUsers[currentUser.id] = {
         name: currentUser.name,
         email: currentUser.email,
-        registeredAt: currentUser.registeredAt
+        registeredAt: currentUser.registeredAt,
+        browserFingerprint: currentUser.browserFingerprint
     };
     saveAllUsers(allUsers);
     
@@ -625,7 +698,6 @@ function hideAdminPanel() {
     if (adminPanel) adminPanel.style.display = 'none';
 }
 
-// ПЛАШКА 1: Результаты голосования
 async function showLiveResults() {
     const modal = document.getElementById('resultsModal');
     const resultsGrid = document.getElementById('resultsGrid');
@@ -696,7 +768,6 @@ async function showLiveResults() {
     }
 }
 
-// ПЛАШКА 2: Все проголосовавшие
 async function showAllVoters() {
     const modal = document.getElementById('resultsModal');
     const resultsGrid = document.getElementById('resultsGrid');
@@ -758,7 +829,6 @@ async function showAllVoters() {
     }
 }
 
-// Вспомогательные функции для админки
 function calculateResults(votes) {
     const results = {};
     
@@ -856,6 +926,7 @@ function resetVoting() {
         const currentUserBackup = localStorage.getItem(CURRENT_USER_KEY);
         
         localStorage.removeItem(ALL_VOTES_KEY);
+        localStorage.removeItem(ALL_USERS_KEY);
         
         if (currentUserBackup) {
             localStorage.setItem(CURRENT_USER_KEY, currentUserBackup);
@@ -927,18 +998,14 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+// Убираем функцию выхода
 function logout() {
-    if (confirm('Вы уверены, что хотите выйти? Вы сможете зарегистрироваться снова.')) {
-        localStorage.removeItem(CURRENT_USER_KEY);
-        currentUser = null;
-        showRegistrationSection();
-        showNotification('Вы вышли из системы', 'info');
-    }
+    // Функция удалена - выход невозможен
 }
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Запускаем приложение с Firebase...');
+    console.log('🚀 Запускаем приложение с защитой от мультиаккаунтов...');
     
     const registerButton = document.querySelector('.login-button');
     if (registerButton) registerButton.onclick = registerUser;
@@ -958,4 +1025,3 @@ window.showAllVoters = showAllVoters;
 window.closeResults = closeResults;
 window.exportData = exportData;
 window.resetVoting = resetVoting;
-window.logout = logout;

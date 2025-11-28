@@ -28,6 +28,11 @@
             </div>
             
             <button class="login-button" onclick="registerUser()">Начать голосование</button>
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(146, 20, 12, 0.1); border-radius: 10px; font-size: 0.9em;">
+                <strong>⚠️ Внимание:</strong> Один человек может проголосовать только один раз. 
+                После регистрации выход из системы невозможен.
+            </div>
         </div>
 
         <!-- Голосование -->
@@ -51,7 +56,6 @@
 
                 <div class="user-info">
                     <span id="userNameDisplay"></span>
-                    <button class="logout-button" onclick="logout()">🚪</button>
                 </div>
             </div>
 
@@ -107,7 +111,6 @@
             <button class="admin-button" onclick="showAllVoters()">👥 Все проголосовавшие</button>
             <button class="admin-button" onclick="exportData()">📁 Экспорт данных</button>
             <button class="admin-button" onclick="resetVoting()">🔄 Сбросить голосование</button>
-            <button class="admin-button" onclick="logout()">🚪 Выйти</button>
         </div>
     </div>
 
