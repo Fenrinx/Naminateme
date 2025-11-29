@@ -10,7 +10,6 @@
     <div id="snowflakes-container"></div>
     
     <div class="container">
-        <!-- Регистрация -->
         <div id="registrationSection" class="auth-container">
             <h2>Премия ИСП 2024</h2>
             <p class="gold-subtitle">Голосование за лучших студентов</p>
@@ -35,7 +34,6 @@
             </div>
         </div>
 
-        <!-- Голосование -->
         <div id="votingSection" style="display: none;">
             <div class="header">
                 <div class="title-section">
@@ -45,18 +43,25 @@
                 
                 <div class="stats-section">
                     <div class="stat-card">
+                        
                         <div class="stat-number" id="completedNominations">0/8</div>
                         <div class="stat-label">Ваши голоса</div>
                     </div>
                     <div class="stat-card">
+                        
                         <div class="stat-number" id="totalVotes">0</div>
                         <div class="stat-label">Всего голосов</div>
+                    </div>
+                    <div class="stat-card">
+                       
+                        <div class="stat-number" id="totalVoters">0</div>
+                        <div class="stat-label">Проголосовало</div>
                     </div>
                 </div>
 
                 <div class="user-info">
                     <span id="userNameDisplay"></span>
-                    <button class="logout-button" onclick="logoutFromAccount()" title="Выйти из учетной записи (только для админа)">🚪</button>
+                    <button class="logout-button" onclick="logoutFromAccount()">🚪</button>
                 </div>
             </div>
 
@@ -78,7 +83,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно выбора студента -->
     <div id="studentModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -88,7 +92,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно пароля админа -->
     <div id="passwordModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closePasswordModal()">&times;</span>
@@ -101,23 +104,19 @@
         </div>
     </div>
 
-    <!-- Админ-панель -->
     <div id="adminPanel" class="admin-panel" style="display: none;">
         <div class="admin-header">
             <h2>Админ-панель</h2>
             <button class="logout-button" onclick="hideAdminPanel()">✕</button>
         </div>
         <div class="admin-controls">
-            <button class="admin-button" onclick="showLiveResults()">📊 Результаты в реальном времени</button>
-            <button class="admin-button" onclick="showAllVoters()">👥 Все проголосовавшие</button>
-            <button class="admin-button" onclick="exportData()">📁 Экспорт данных</button>
-            <button class="admin-button" onclick="resetVoting()">🔄 Сбросить голосование</button>
-            <button class="admin-button" onclick="forceReset()" style="background: linear-gradient(135deg, #1e1e24, rgba(220, 53, 69, 0.8));">💥 Сильный сброс (отладка)</button>
-            <button class="admin-button" onclick="adminLogout()">🚪 Выйти из админ-панели</button>
+            <button class="admin-button" onclick="showLiveResults()">📊 Результаты</button>
+            <button class="admin-button" onclick="showAllVoters()">👥 Проголосовавшие</button>
+            <button class="admin-button" onclick="exportData()">📁 Экспорт</button>
+            <button class="admin-button" onclick="resetVoting()">🔄 Сбросить</button>
         </div>
     </div>
 
-    <!-- Модальное окно результатов -->
     <div id="resultsModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeResults()">&times;</span>
@@ -126,7 +125,6 @@
         </div>
     </div>
 
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="script.js"></script>
