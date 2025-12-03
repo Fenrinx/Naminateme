@@ -82,6 +82,24 @@ const nominations = [
         title: "Колдун оправданий",
         description: "Его объяснения пропусков и невыполненных работ — это настоящее искусство. Даже строгий преподаватель поверит в историю про кота.",
         isMain: false
+    },
+    {
+        id: "expulsion_candidate",
+        title: "Кандидат на отчисление",
+        description: "Человек, который, кажется, больше времени проводит в раздумьях 'а стоит ли идти на пары?', чем на самих парах. Главный специалист по поиску причин не учиться.",
+        isMain: false
+    },
+    {
+        id: "ptu_effect",
+        title: "Эффект ПТУ",
+        description: "Студент, который за время учебы претерпел такие метаморфозы, что теперь его не узнать. Из скромного тихони в душу компании, или наоборот. Эволюция личности в реальном времени!",
+        isMain: false
+    },
+    {
+        id: "quiet_of_the_year",
+        title: "Тихоня года",
+        description: "Человек, присутствие которого в группе было настолько незаметным, что многие только сейчас осознали: 'Так он/она с нами учится?' Мастер скрытного присутствия.",
+        isMain: false
     }
 ];
 
@@ -189,7 +207,7 @@ function createSnowflakes() {
     const container = document.getElementById('snowflakes-container');
     if (!container) return;
     
-    const count = isMobile ? 30 : 50;
+    const count = isMobile ? 20 : 35;
     
     for (let i = 0; i < count; i++) {
         const snowflake = document.createElement('div');
@@ -201,15 +219,15 @@ function createSnowflakes() {
         snowflake.style.left = Math.random() * 100 + 'vw';
         
         const duration = isMobile ? 
-            (Math.random() * 4 + 6) + 's' :
-            (Math.random() * 3 + 4) + 's';
+            (Math.random() * 6 + 8) + 's' :
+            (Math.random() * 4 + 6) + 's';
             
         snowflake.style.animationDuration = duration;
         
         snowflake.style.opacity = Math.random() * 0.6 + 0.3;
         
         const size = isMobile ? 
-            (Math.random() * 3 + 10) + 'px' :
+            (Math.random() * 2 + 8) + 'px' :
             (Math.random() * 5 + 12) + 'px';
         snowflake.style.fontSize = size;
         
@@ -297,7 +315,6 @@ function validateForm() {
     return isValid;
 }
 
-// ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ ФОТОГРАФИЙ
 async function loadStudentPhotos() {
     console.log('Начинаю загрузку фотографий студентов...');
     
@@ -305,7 +322,6 @@ async function loadStudentPhotos() {
         return new Promise((resolve) => {
             const img = new Image();
             
-            // Пробуем разные пути к фотографиям
             const tryPaths = [
                 student.photo,
                 student.photo.startsWith('photos/') ? student.photo : `photos/${student.photo}`,
@@ -328,7 +344,7 @@ async function loadStudentPhotos() {
                 
                 img.onload = function() {
                     console.log('Фото загружено: ' + student.name);
-                    student.photo = img.src; // Обновляем путь на рабочий
+                    student.photo = img.src;
                     student.photoLoaded = true;
                     resolve(img);
                 };
@@ -349,11 +365,9 @@ function initApp() {
         document.body.classList.add('mobile');
     }
     
-    // Сразу создаем снежинки
     createSnowflakes();
     
-    // Запускаем создание снежинок с разным интервалом
-    const snowflakeInterval = isMobile ? 1200 : 800;
+    const snowflakeInterval = isMobile ? 2000 : 1200;
     setInterval(createSnowflakes, snowflakeInterval);
     
     createGarlands();
@@ -417,12 +431,10 @@ function initApp() {
     
     updateStats();
     
-    // Загружаем фотографии в фоне
     loadStudentPhotos().catch(error => {
         console.log('Ошибка при загрузке фото: ', error);
     });
     
-    // Оптимизация для touch устройств
     if (isTouchDevice) {
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
@@ -658,7 +670,6 @@ function openStudentSelection(nominationId) {
         
         const img = document.createElement('img');
         
-        // Пробуем загрузить фото с разных путей
         const tryImageLoad = (src, attempts = 3) => {
             return new Promise((resolve) => {
                 let attempt = 0;
@@ -679,7 +690,6 @@ function openStudentSelection(nominationId) {
                     };
                     
                     img.onerror = () => {
-                        // Пробуем альтернативные пути
                         const altPaths = [
                             src,
                             src.startsWith('photos/') ? src : `photos/${src}`,
@@ -699,10 +709,8 @@ function openStudentSelection(nominationId) {
             });
         };
         
-        // Сначала пробуем загрузить основное фото
         tryImageLoad(student.photo).then(success => {
             if (!success) {
-                // Если фото не загрузилось, показываем инициалы на цветном фоне
                 img.style.display = 'none';
                 photoContainer.style.background = student.gender === 'female' 
                     ? 'linear-gradient(135deg, #ec407a, #ab47bc)'
@@ -1308,6 +1316,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             lastTouchEnd = now;
         }, false);
+        
+        document.body.style.overflowY = 'scroll';
+        document.body.style.webkitOverflowScrolling = 'touch';
     }
     
     initApp();
