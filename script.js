@@ -118,6 +118,39 @@ const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 let mobileSelectedStudent = null;
 let mobileCurrentNomination = null;
 
+let isProcessingClick = false; // Флаг для предотвращения множественных нажатий
+
+// Функция для безопасной обработки касаний
+function safeMobileClick(element, callback) {
+    if (isProcessingClick) return;
+    
+    isProcessingClick = true;
+    
+    // Визуальная обратная связь
+    if (element) {
+        element.style.transform = 'scale(0.97)';
+        element.style.transition = 'transform 0.15s cubic-bezier(0.4, 0, 0.2, 1)';
+    }
+    
+    setTimeout(() => {
+        if (element) {
+            element.style.transform = '';
+        }
+        
+        if (typeof callback === 'function') {
+            try {
+                callback();
+            } catch (error) {
+                console.error('Ошибка при обработке клика:', error);
+            }
+        }
+        
+        setTimeout(() => {
+            isProcessingClick = false;
+        }, 300);
+    }, 150);
+}
+
 function generateBrowserFingerprint() {
     let fingerprint = '';
     fingerprint += navigator.userAgent;
@@ -357,6 +390,81 @@ async function loadStudentPhotos() {
     await Promise.allSettled(loadPromises);
 }
 
+function setupMobileTouchHandlers() {
+    if (!isMobile) return;
+    
+    // Обработчик для кнопки регистрации
+    const loginButton = document.querySelector('.login-button');
+    if (loginButton) {
+        loginButton.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            safeMobileClick(this, registerUser);
+        }, { passive: false });
+    }
+    
+    // Обработчики для кнопок голосования
+    document.addEventListener('click', function(e) {
+        const voteButton = e.target.closest('.vote-button');
+        if (voteButton && isMobile) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const onclickAttr = voteButton.getAttribute('onclick');
+            if (onclickAttr) {
+                const match = onclickAttr.match(/'([^']+)'/);
+                if (match && match[1]) {
+                    safeMobileClick(voteButton, () => openStudentSelection(match[1]));
+                }
+            }
+        }
+    });
+    
+    // Обработчики для кнопок админа
+    const adminButtons = document.querySelectorAll('.admin-button, .admin-access-btn, .confirm-button');
+    adminButtons.forEach(button => {
+        button.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            safeMobileClick(this, () => {
+                const onclickAttr = this.getAttribute('onclick');
+                if (onclickAttr) {
+                    try {
+                        const func = new Function(onclickAttr.replace('onclick="', '').replace('"', ''));
+                        func.call(this);
+                    } catch (error) {
+                        console.error('Ошибка выполнения обработчика:', error);
+                    }
+                }
+            });
+        }, { passive: false });
+    });
+    
+    // Обработчики для карточек студентов
+    document.addEventListener('touchend', function(e) {
+        const studentCard = e.target.closest('.student-card');
+        if (studentCard && isMobile) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const nameElement = studentCard.querySelector('.student-name');
+            if (nameElement) {
+                const studentName = nameElement.textContent;
+                safeMobileClick(studentCard, () => {
+                    selectStudent(studentName, studentCard);
+                });
+            }
+        }
+    }, { passive: false });
+    
+    // Предотвращаем скролл при касании на кнопках
+    document.addEventListener('touchmove', function(e) {
+        if (e.target.closest('button') || e.target.closest('.student-card')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+}
+
 function initApp() {
     if (isMobile) {
         document.body.classList.add('mobile');
@@ -435,6 +543,16 @@ function initApp() {
     }
     
     initMobileMenu();
+    
+    // Настраиваем обработчики для мобильных
+    setTimeout(() => {
+        setupMobileTouchHandlers();
+    }, 1000);
+    
+    // Исправление для iOS
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        document.body.style.cursor = 'pointer';
+    }
 }
 
 function initMobileMenu() {
@@ -463,6 +581,28 @@ function initMobileMenu() {
     
     document.body.appendChild(overlay);
     document.body.appendChild(mobileMenu);
+    
+    // Настраиваем обработчики для мобильного меню
+    const mobileSelectBtn = document.getElementById('mobileSelectBtn');
+    const mobileCloseBtn = mobileMenu.querySelector('.mobile-close-btn');
+    
+    if (mobileSelectBtn) {
+        mobileSelectBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!this.disabled) {
+                safeMobileClick(this, confirmMobileSelection);
+            }
+        }, { passive: false });
+    }
+    
+    if (mobileCloseBtn) {
+        mobileCloseBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            safeMobileClick(this, closeMobileStudentList);
+        }, { passive: false });
+    }
 }
 
 function showRegistrationSection() {
@@ -489,6 +629,8 @@ function showVotingSection() {
 }
 
 function registerUser() {
+    if (isProcessingClick) return;
+    
     const userNameInput = document.getElementById('userName');
     const userEmailInput = document.getElementById('userEmail');
     
@@ -631,6 +773,18 @@ function createNominationCard(nomination) {
         </button>
     `;
     
+    // Добавляем обработчик для мобильных
+    if (isMobile) {
+        const voteButton = card.querySelector('.vote-button');
+        if (voteButton) {
+            voteButton.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                safeMobileClick(this, () => openStudentSelection(nomination.id));
+            }, { passive: false });
+        }
+    }
+    
     return card;
 }
 
@@ -643,6 +797,18 @@ function setupModal() {
             if (modal) modal.style.display = 'none';
             currentNomination = null;
         };
+        
+        // Мобильный обработчик
+        if (isMobile) {
+            closeBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                safeMobileClick(this, () => {
+                    if (modal) modal.style.display = 'none';
+                    currentNomination = null;
+                });
+            }, { passive: false });
+        }
     }
 
     window.onclick = (event) => {
@@ -651,9 +817,22 @@ function setupModal() {
             currentNomination = null;
         }
     };
+    
+    // Мобильный обработчик для фона модального окна
+    if (isMobile && modal) {
+        modal.addEventListener('touchend', function(e) {
+            if (e.target === this) {
+                e.preventDefault();
+                this.style.display = 'none';
+                currentNomination = null;
+            }
+        }, { passive: false });
+    }
 }
 
 function openStudentSelection(nominationId) {
+    if (isProcessingClick && isMobile) return;
+    
     currentNomination = nominationId;
     
     if (isMobile) {
@@ -773,10 +952,31 @@ function openStudentSelection(nominationId) {
         
         studentCard.onclick = () => selectStudent(student.name, studentCard);
         
+        // Мобильный обработчик
+        if (isMobile) {
+            studentCard.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                safeMobileClick(this, () => selectStudent(student.name, studentCard));
+            }, { passive: false });
+        }
+        
         studentsGrid.appendChild(studentCard);
     });
 
     confirmBtn.disabled = !currentSelection;
+    
+    // Мобильный обработчик для кнопки подтверждения
+    if (isMobile) {
+        confirmBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!this.disabled) {
+                safeMobileClick(this, confirmSelection);
+            }
+        }, { passive: false });
+    }
+    
     modal.style.display = 'block';
 }
 
@@ -995,15 +1195,29 @@ function showMobileStudentList(nominationId) {
             }
         });
         
+        // Мобильный обработчик касания
+        listItem.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            document.querySelectorAll('.mobile-student-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            this.classList.add('selected');
+            mobileSelectedStudent = student.name;
+            
+            selectBtn.disabled = false;
+            
+            if (isTouchDevice && navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+        }, { passive: false });
+        
         listContainer.appendChild(listItem);
     });
     
     selectBtn.disabled = !currentSelection;
-    selectBtn.onclick = function() {
-        if (mobileSelectedStudent && mobileCurrentNomination) {
-            confirmMobileSelection();
-        }
-    };
     
     overlay.classList.add('active');
     list.classList.add('active');
@@ -1423,10 +1637,10 @@ async function resetVoting() {
     }
 }
 
+// Исправление для мобильных устройств
 document.addEventListener('DOMContentLoaded', function() {
     if (isTouchDevice) {
-        document.addEventListener('touchstart', function() {}, {passive: true});
-        
+        // Предотвращаем зум при двойном тапе
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function(event) {
             const now = Date.now();
@@ -1434,12 +1648,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.preventDefault();
             }
             lastTouchEnd = now;
-        }, false);
+        }, { passive: false });
         
+        // Улучшаем скролл на iOS
         document.body.style.overflowY = 'scroll';
         document.body.style.webkitOverflowScrolling = 'touch';
+        
+        // Исправление для iOS Safari
+        if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+            // Предотвращаем выделение текста при долгом нажатии
+            document.addEventListener('touchstart', function(e) {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        }
     }
     
+    // Инициализация приложения
     initApp();
 });
 
