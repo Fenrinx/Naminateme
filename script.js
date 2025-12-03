@@ -115,6 +115,9 @@ const BROWSER_FINGERPRINT_KEY = "antipremia_isp_2024_browser_fingerprint";
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
+let mobileSelectedStudent = null;
+let mobileCurrentNomination = null;
+
 function generateBrowserFingerprint() {
     let fingerprint = '';
     fingerprint += navigator.userAgent;
@@ -156,7 +159,6 @@ async function saveVoteToFirebase(nominationId, studentName) {
         saveToLocalStorage(currentUser.id, nominationId, studentName);
         
         showNotification('Голос сохранен!', 'success');
-        updateStats();
         return true;
         
     } catch (error) {
@@ -316,8 +318,6 @@ function validateForm() {
 }
 
 async function loadStudentPhotos() {
-    console.log('Начинаю загрузку фотографий студентов...');
-    
     const loadPromises = students.map(student => {
         return new Promise((resolve) => {
             const img = new Image();
@@ -333,7 +333,6 @@ async function loadStudentPhotos() {
             
             function tryNextPath() {
                 if (currentTry >= tryPaths.length) {
-                    console.log('Не удалось загрузить фото для: ' + student.name);
                     student.photoLoaded = false;
                     resolve(null);
                     return;
@@ -343,7 +342,6 @@ async function loadStudentPhotos() {
                 currentTry++;
                 
                 img.onload = function() {
-                    console.log('Фото загружено: ' + student.name);
                     student.photo = img.src;
                     student.photoLoaded = true;
                     resolve(img);
@@ -357,7 +355,6 @@ async function loadStudentPhotos() {
     });
     
     await Promise.allSettled(loadPromises);
-    console.log('Загрузка фотографий завершена');
 }
 
 function initApp() {
@@ -429,17 +426,43 @@ function initApp() {
         showRegistrationSection();
     }
     
-    updateStats();
-    
-    loadStudentPhotos().catch(error => {
-        console.log('Ошибка при загрузке фото: ', error);
-    });
+    loadStudentPhotos().catch(error => {});
     
     if (isTouchDevice) {
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
         });
     }
+    
+    initMobileMenu();
+}
+
+function initMobileMenu() {
+    const overlay = document.createElement('div');
+    overlay.id = 'mobileStudentOverlay';
+    overlay.className = 'mobile-student-overlay';
+    overlay.onclick = closeMobileStudentList;
+    
+    const mobileMenu = document.createElement('div');
+    mobileMenu.id = 'mobileStudentList';
+    mobileMenu.className = 'mobile-student-list';
+    mobileMenu.onclick = function(e) {
+        e.stopPropagation();
+    };
+    
+    mobileMenu.innerHTML = `
+        <div class="mobile-student-header">
+            <h3 class="mobile-student-title" id="mobileStudentTitle">Выберите студента</h3>
+            <button class="mobile-close-btn" onclick="closeMobileStudentList()">×</button>
+        </div>
+        <div class="mobile-students-container" id="mobileStudentsContainer"></div>
+        <button id="mobileSelectBtn" class="mobile-select-btn" disabled onclick="confirmMobileSelection()">
+            Подтвердить выбор
+        </button>
+    `;
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(mobileMenu);
 }
 
 function showRegistrationSection() {
@@ -457,7 +480,6 @@ function showVotingSection() {
     
     renderNominations();
     setupModal();
-    updateStats();
     
     if (isMobile) {
         setTimeout(() => {
@@ -633,6 +655,13 @@ function setupModal() {
 
 function openStudentSelection(nominationId) {
     currentNomination = nominationId;
+    
+    if (isMobile) {
+        mobileCurrentNomination = nominationId;
+        showMobileStudentList(nominationId);
+        return;
+    }
+    
     const modal = document.getElementById('studentModal');
     const modalTitle = document.getElementById('modalTitle');
     const studentsGrid = document.getElementById('studentsGrid');
@@ -656,7 +685,7 @@ function openStudentSelection(nominationId) {
         filteredStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    const columns = isMobile ? 2 : 4;
+    const columns = 4;
     studentsGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
 
     filteredStudents.forEach((student) => {
@@ -737,36 +766,18 @@ function openStudentSelection(nominationId) {
         
         const nameDiv = document.createElement('div');
         nameDiv.className = 'student-name';
-        let displayName = student.name;
-        if (isMobile) {
-            const parts = student.name.split(' ');
-            displayName = parts[0] + ' ' + (parts[1]?.[0] || '') + '.';
-        }
-        nameDiv.textContent = displayName;
+        nameDiv.textContent = student.name;
         
         studentCard.appendChild(photoContainer);
         studentCard.appendChild(nameDiv);
         
-        if (isTouchDevice) {
-            studentCard.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                selectStudent(student.name, studentCard);
-            }, { passive: false });
-        } else {
-            studentCard.onclick = () => selectStudent(student.name, studentCard);
-        }
+        studentCard.onclick = () => selectStudent(student.name, studentCard);
         
         studentsGrid.appendChild(studentCard);
     });
 
     confirmBtn.disabled = !currentSelection;
     modal.style.display = 'block';
-    
-    if (isMobile) {
-        setTimeout(() => {
-            modal.scrollTop = 0;
-        }, 50);
-    }
 }
 
 function getInitials(name) {
@@ -786,10 +797,6 @@ function selectStudent(studentName, cardElement) {
     Array.from(studentsGrid.children).forEach(card => card.classList.remove('selected'));
     cardElement.classList.add('selected');
     confirmBtn.disabled = false;
-    
-    if (isTouchDevice && navigator.vibrate) {
-        navigator.vibrate(20);
-    }
 }
 
 function confirmSelection() {
@@ -805,7 +812,6 @@ function confirmSelection() {
     
     saveVoteToFirebase(currentNomination, studentName);
     updateNominationDisplay(currentNomination, studentName);
-    updateStats();
     
     showNotification(`Вы выбрали: ${studentName}`, 'success');
     
@@ -832,26 +838,6 @@ function updateNominationDisplay(nominationId, studentName) {
     setTimeout(() => {
         alignButtonsHeight();
     }, 100);
-}
-
-function updateStats() {
-    if (!currentUser) return;
-    
-    const allVotes = getAllVotes();
-    const userVotes = allVotes[currentUser.id] || {};
-    const completedNominations = Object.values(userVotes).filter(v => v).length;
-    
-    const completedElement = document.getElementById('completedNominations');
-    const totalVotesElement = document.getElementById('totalVotes');
-    
-    if (completedElement) completedElement.textContent = `${completedNominations}/${nominations.length}`;
-    
-    let totalVotesCount = 0;
-    Object.values(allVotes).forEach(userVotes => {
-        totalVotesCount += Object.values(userVotes).filter(v => v).length;
-    });
-    
-    if (totalVotesElement) totalVotesElement.textContent = totalVotesCount;
 }
 
 function showNotification(message, type = 'info') {
@@ -914,6 +900,139 @@ if (!document.querySelector('#notification-styles')) {
         }
     `;
     document.head.appendChild(style);
+}
+
+function showMobileStudentList(nominationId) {
+    const nomination = nominations.find(n => n.id === nominationId);
+    if (!nomination) return;
+    
+    const overlay = document.getElementById('mobileStudentOverlay');
+    const list = document.getElementById('mobileStudentList');
+    const title = document.getElementById('mobileStudentTitle');
+    const listContainer = document.getElementById('mobileStudentsContainer');
+    const selectBtn = document.getElementById('mobileSelectBtn');
+    
+    if (!overlay || !list || !title || !listContainer || !selectBtn) return;
+    
+    title.textContent = nomination.title;
+    
+    listContainer.innerHTML = '';
+    mobileSelectedStudent = null;
+    
+    const allVotes = getAllVotes();
+    const userVotes = allVotes[currentUser?.id] || {};
+    const currentSelection = userVotes[nominationId];
+    
+    let filteredStudents;
+    if (nomination.gender) {
+        filteredStudents = students.filter(student => student.gender === nomination.gender);
+    } else {
+        filteredStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    
+    filteredStudents.forEach((student) => {
+        const listItem = document.createElement('div');
+        listItem.className = 'mobile-student-item';
+        
+        if (currentSelection === student.name) {
+            listItem.classList.add('selected');
+            mobileSelectedStudent = student.name;
+        }
+        
+        const photoContainer = document.createElement('div');
+        photoContainer.className = 'mobile-student-photo';
+        
+        const img = document.createElement('img');
+        img.alt = student.name;
+        img.loading = 'lazy';
+        
+        const imgLoader = new Image();
+        imgLoader.src = student.photo;
+        imgLoader.onload = function() {
+            img.src = student.photo;
+        };
+        imgLoader.onerror = function() {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'mobile-photo-placeholder';
+            placeholder.textContent = getInitials(student.name);
+            photoContainer.innerHTML = '';
+            photoContainer.appendChild(placeholder);
+        };
+        
+        photoContainer.appendChild(img);
+        
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'mobile-student-info';
+        
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'mobile-student-name';
+        nameDiv.textContent = student.name;
+        
+        const genderDiv = document.createElement('div');
+        genderDiv.className = 'mobile-student-gender';
+        genderDiv.textContent = student.gender === 'female' ? 'Девушка' : 'Парень';
+        
+        infoDiv.appendChild(nameDiv);
+        infoDiv.appendChild(genderDiv);
+        
+        listItem.appendChild(photoContainer);
+        listItem.appendChild(infoDiv);
+        
+        listItem.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            document.querySelectorAll('.mobile-student-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            this.classList.add('selected');
+            mobileSelectedStudent = student.name;
+            
+            selectBtn.disabled = false;
+            
+            if (isTouchDevice && navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+        });
+        
+        listContainer.appendChild(listItem);
+    });
+    
+    selectBtn.disabled = !currentSelection;
+    selectBtn.onclick = function() {
+        if (mobileSelectedStudent && mobileCurrentNomination) {
+            confirmMobileSelection();
+        }
+    };
+    
+    overlay.classList.add('active');
+    list.classList.add('active');
+    
+    document.body.style.overflow = 'hidden';
+}
+
+function closeMobileStudentList() {
+    const overlay = document.getElementById('mobileStudentOverlay');
+    const list = document.getElementById('mobileStudentList');
+    
+    if (overlay) overlay.classList.remove('active');
+    if (list) list.classList.remove('active');
+    
+    document.body.style.overflow = '';
+    
+    mobileSelectedStudent = null;
+    mobileCurrentNomination = null;
+}
+
+function confirmMobileSelection() {
+    if (!mobileSelectedStudent || !mobileCurrentNomination || !currentUser) return;
+    
+    saveVoteToFirebase(mobileCurrentNomination, mobileSelectedStudent);
+    updateNominationDisplay(mobileCurrentNomination, mobileSelectedStudent);
+    
+    showNotification(`Вы выбрали: ${mobileSelectedStudent}`, 'success');
+    
+    closeMobileStudentList();
 }
 
 function showPasswordModal() {
@@ -1337,3 +1456,5 @@ window.showAllVoters = showAllVoters;
 window.closeResults = closeResults;
 window.resetVoting = resetVoting;
 window.confirmSelection = confirmSelection;
+window.closeMobileStudentList = closeMobileStudentList;
+window.confirmMobileSelection = confirmMobileSelection;
