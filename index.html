@@ -3,16 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Премия ИСП - Голосование</title>
+    <title>Антипремия "Так себе достижения"</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="snowflakes-container"></div>
     
     <div class="container">
+        <!-- УДАЛЕН <div class="header-image"></div> -->
+        
         <div id="registrationSection" class="auth-container">
-            <h2>Премия ИСП 2024</h2>
-            <p class="gold-subtitle">Голосование за лучших студентов</p>
+            <div class="logo-header">
+                <div class="award-badge">
+                    <div class="badge-icon"></div>
+                    <div class="badge-text">Антипремия 2024</div>
+                </div>
+                <h1 class="main-title">"Так себе достижения"</h1>
+                <p class="subtitle">Голосование за самые незаметные подвиги в учебном процессе</p>
+            </div>
             
             <div class="form-group">
                 <label for="userName">Ваше ФИО:</label>
@@ -26,59 +34,82 @@
                 <div class="error-message" id="emailError">Введите корректный email</div>
             </div>
             
-            <button class="login-button" onclick="registerUser()">Начать голосование</button>
+            <button class="login-button" onclick="registerUser()">
+                <span class="button-text">Начать голосование</span>
+                <span class="button-arrow"></span>
+            </button>
             
-            <div style="margin-top: 20px; padding: 15px; background: rgba(146, 20, 12, 0.1); border-radius: 10px; font-size: 0.9em;">
-                <strong>⚠️ Внимание:</strong> Один человек может проголосовать только один раз. 
-                После регистрации выход из системы невозможен.
+            <div class="warning-note">
+                Важно: Один человек — один голос. После регистрации выход из системы невозможен.
             </div>
         </div>
 
         <div id="votingSection" style="display: none;">
             <div class="header">
                 <div class="title-section">
-                    <h1>Премия ИСП 2024</h1>
+                    <div class="main-award-title">
+                        <span class="award-text">Антипремия</span>
+                        <span class="award-subtext">"Так себе достижения"</span>
+                    </div>
                     <p class="gold-subtitle">Выберите лучших в каждой номинации</p>
                 </div>
                 
                 <div class="stats-section">
                     <div class="stat-card">
-                        
                         <div class="stat-number" id="completedNominations">0/8</div>
                         <div class="stat-label">Ваши голоса</div>
                     </div>
                     <div class="stat-card">
-                        
                         <div class="stat-number" id="totalVotes">0</div>
                         <div class="stat-label">Всего голосов</div>
                     </div>
-                    <div class="stat-card">
-                       
-                        <div class="stat-number" id="totalVoters">0</div>
-                        <div class="stat-label">Проголосовало</div>
-                    </div>
                 </div>
 
-                <div class="user-info">
-                    <span id="userNameDisplay"></span>
-                    <button class="logout-button" onclick="logoutFromAccount()">🚪</button>
-                </div>
+                <button class="admin-access-btn" onclick="showPasswordModal()">Админ</button>
             </div>
 
             <div class="nominations-container">
+                <div class="garland-separator">
+                    <div class="garland-string"></div>
+                    <div class="garland-balls"></div>
+                </div>
+                
                 <div class="main-nominations">
                     <h2 class="section-title">Главные номинации</h2>
                     <div class="nominations-grid main-grid" id="mainNominationsContainer"></div>
                 </div>
                 
+                <div class="garland-separator">
+                    <div class="garland-string"></div>
+                    <div class="garland-balls"></div>
+                </div>
+                
                 <div class="other-nominations">
-                    <h2 class="section-title">Дополнительные номинации</h2>
+                    <h2 class="section-title">Антиноминации</h2>
                     <div class="nominations-grid other-grid" id="otherNominationsContainer"></div>
+                </div>
+                
+                <div class="garland-separator">
+                    <div class="garland-string"></div>
+                    <div class="garland-balls"></div>
                 </div>
             </div>
 
-            <div class="admin-access">
-                <button class="admin-access-button" onclick="showPasswordModal()">Админ-панель</button>
+            <div class="info-section">
+                <div class="info-content">
+                    <h3 class="info-title">Голосование проводится среди группы</h3>
+                    <p class="info-text">
+                        Все номинации являются шуточными и созданы в неформальной обстановке. 
+                        Голосуя, вы принимаете участие в дружеском соревновании, где каждый 
+                        студент может получить свою минуту славы за самые "так себе" достижения 
+                        в учебном году.
+                    </p>
+                    <p class="info-text">
+                        Голосование полностью анонимное. Никто не узнает, за кого конкретно 
+                        вы голосовали. Будут показаны только общие результаты - за кого 
+                        голосовали больше всего в каждой номинации.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -88,7 +119,10 @@
             <span class="close">&times;</span>
             <h2 class="modal-title" id="modalTitle">Выберите студента</h2>
             <div class="students-grid" id="studentsGrid"></div>
-            <button id="confirmSelection" class="confirm-button" disabled>Подтвердить выбор</button>
+            <button id="confirmSelection" class="confirm-button" onclick="confirmSelection()" disabled>
+                <span class="button-text">Подтвердить выбор</span>
+                <span class="button-arrow"></span>
+            </button>
         </div>
     </div>
 
@@ -100,20 +134,31 @@
                 <label for="adminPassword">Пароль:</label>
                 <input type="password" id="adminPassword" placeholder="Введите пароль">
             </div>
-            <button class="confirm-button" onclick="checkAdminPassword()">Войти</button>
+            <button class="confirm-button" onclick="checkAdminPassword()">
+                <span class="button-text">Войти</span>
+                <span class="button-arrow"></span>
+            </button>
         </div>
     </div>
 
-    <div id="adminPanel" class="admin-panel" style="display: none;">
-        <div class="admin-header">
-            <h2>Админ-панель</h2>
-            <button class="logout-button" onclick="hideAdminPanel()">✕</button>
-        </div>
-        <div class="admin-controls">
-            <button class="admin-button" onclick="showLiveResults()">📊 Результаты</button>
-            <button class="admin-button" onclick="showAllVoters()">👥 Проголосовавшие</button>
-            <button class="admin-button" onclick="exportData()">📁 Экспорт</button>
-            <button class="admin-button" onclick="resetVoting()">🔄 Сбросить</button>
+    <div id="adminPanel" class="modal">
+        <div class="modal-content admin-modal">
+            <span class="close" onclick="hideAdminPanel()">&times;</span>
+            <h2 class="modal-title">Админ-панель</h2>
+            <div class="admin-controls">
+                <button class="admin-button" onclick="showLiveResults()">
+                    <span class="button-text">Результаты</span>
+                </button>
+                <button class="admin-button" onclick="showAllVoters()">
+                    <span class="button-text">Проголосовавшие</span>
+                </button>
+                <button class="admin-button" onclick="downloadResultsImage()">
+                    <span class="button-text">Скачать как картинку</span>
+                </button>
+                <button class="admin-button" onclick="resetVoting()">
+                    <span class="button-text">Сбросить голосование</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -127,6 +172,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

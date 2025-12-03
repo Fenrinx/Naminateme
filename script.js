@@ -36,63 +36,66 @@ const nominations = [
     {
         id: "best_male",
         title: "Лучший парень группы",
-        description: "Главный приз за выдающиеся качества и лидерство",
+        description: "Тот, кто всегда поддержит в трудную минуту, поможет с учебой и создаст дружескую атмосферу. Настоящий лидер и надежный товарищ.",
         isMain: true,
         gender: "male"
     },
     {
         id: "best_female", 
         title: "Лучшая девушка группы",
-        description: "Главный приз за выдающиеся качества и лидерство", 
+        description: "Самая отзывчивая, ответственная и душевная. Всегда готова помочь, поддержать и зарядить позитивом всю группу.", 
         isMain: true,
         gender: "female"
     },
     {
-        id: "best_student",
-        title: "Лучший студент",
-        description: "За выдающиеся академические достижения и успехи в учебе",
+        id: "alternative_reality",
+        title: "Мастер альтернативной реальности",
+        description: "Живет по собственному расписанию и календарю. Для него каждый день может быть пятницей, а дедлайн — понятие растяжимое.",
         isMain: false
     },
     {
-        id: "creative", 
-        title: "Самый креативный",
-        description: "За творческий подход и нестандартное мышление",
+        id: "group_meme", 
+        title: "Мем группы",
+        description: "Его фразы и поступки моментально становятся легендами. Одно его слово — и в чате новый мем на неделю.",
         isMain: false
     },
     {
-        id: "leader",
-        title: "Лучший лидер", 
-        description: "За организаторские способности и лидерские качества",
+        id: "group_diplomat",
+        title: "Дипломат группы", 
+        description: "Умеет договориться с любым преподавателем. Для него сессия — просто временные трудности, а не конец света.",
         isMain: false
     },
     {
-        id: "friend",
-        title: "Лучший друг",
-        description: "За надежность и поддержку в трудную минуту",
+        id: "group_fashionista",
+        title: "Модник группы",
+        description: "Его стиль — это отдельный предмет для изучения. Даже в старой худи он выглядит как с обложки журнала.",
         isMain: false
     },
     {
-        id: "sportsman",
-        title: "Лучший спортсмен",
-        description: "За спортивные достижения и активный образ жизни",
+        id: "group_invisible",
+        title: "Невидимка группы",
+        description: "Мастер стелс-технологий. Появляется только в самых критических ситуациях и моментально растворяется в пространстве.",
         isMain: false
     },
     {
-        id: "humor",
-        title: "Душа компании",
-        description: "За отличное чувство юмора и умение поднять настроение",
+        id: "excuse_wizard",
+        title: "Колдун оправданий",
+        description: "Его объяснения пропусков и невыполненных работ — это настоящее искусство. Даже строгий преподаватель поверит в историю про кота.",
         isMain: false
     }
 ];
 
 let currentNomination = null;
 let currentUser = null;
-const ADMIN_PASSWORD = "admin2024";
+const ADMIN_PASSWORD = "TrapMan8@";
 
-const ALL_VOTES_KEY = "premia_isp_2025_all_votes";
-const ALL_USERS_KEY = "premia_isp_2025_all_users";
-const CURRENT_USER_KEY = "premia_isp_2025_current_user";
-const BROWSER_FINGERPRINT_KEY = "premia_isp_2025_browser_fingerprint";
+const ALL_VOTES_KEY = "antipremia_isp_2024_all_votes";
+const ALL_USERS_KEY = "antipremia_isp_2024_all_users";
+const CURRENT_USER_KEY = "antipremia_isp_2024_current_user";
+const BROWSER_FINGERPRINT_KEY = "antipremia_isp_2024_browser_fingerprint";
+
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 function generateBrowserFingerprint() {
     let fingerprint = '';
@@ -100,7 +103,6 @@ function generateBrowserFingerprint() {
     fingerprint += navigator.language;
     fingerprint += screen.colorDepth;
     fingerprint += (screen.height || '') + (screen.width || '');
-    fingerprint += new Date().getTimezoneOffset();
     return btoa(fingerprint).substring(0, 32);
 }
 
@@ -146,37 +148,6 @@ async function saveVoteToFirebase(nominationId, studentName) {
     }
 }
 
-async function getAllVotesFromFirebase() {
-    try {
-        const snapshot = await db.collection('votes').orderBy('timestamp', 'desc').get();
-        const votes = {};
-        snapshot.forEach(doc => {
-            const vote = doc.data();
-            if (!votes[vote.userId]) votes[vote.userId] = {};
-            votes[vote.userId][vote.nominationId] = vote.studentName;
-        });
-        return votes;
-    } catch (error) {
-        return getAllVotes();
-    }
-}
-
-async function getDetailedVotesFromFirebase() {
-    try {
-        const snapshot = await db.collection('votes').orderBy('timestamp', 'desc').get();
-        const votes = [];
-        snapshot.forEach(doc => {
-            votes.push({
-                id: doc.id,
-                ...doc.data()
-            });
-        });
-        return votes;
-    } catch (error) {
-        return [];
-    }
-}
-
 function getAllVotes() {
     try {
         const data = localStorage.getItem(ALL_VOTES_KEY);
@@ -218,21 +189,72 @@ function createSnowflakes() {
     const container = document.getElementById('snowflakes-container');
     if (!container) return;
     
-    const count = window.innerWidth < 768 ? 12 : 20;
+    const count = isMobile ? 30 : 50;
     
     for (let i = 0; i < count; i++) {
         const snowflake = document.createElement('div');
-        snowflake.classList.add('snowflake');
-        snowflake.innerHTML = '❄';
+        snowflake.className = 'snowflake';
+        
+        const symbols = ['*', '+', '·', '•'];
+        snowflake.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        
         snowflake.style.left = Math.random() * 100 + 'vw';
-        snowflake.style.animationDuration = (Math.random() * 5 + 3) + 's';
-        snowflake.style.opacity = Math.random() * 0.7 + 0.3;
-        snowflake.style.fontSize = (Math.random() * 6 + 10) + 'px';
-        snowflake.style.animationDelay = Math.random() * 5 + 's';
+        
+        const duration = isMobile ? 
+            (Math.random() * 4 + 6) + 's' :
+            (Math.random() * 3 + 4) + 's';
+            
+        snowflake.style.animationDuration = duration;
+        
+        snowflake.style.opacity = Math.random() * 0.6 + 0.3;
+        
+        const size = isMobile ? 
+            (Math.random() * 3 + 10) + 'px' :
+            (Math.random() * 5 + 12) + 'px';
+        snowflake.style.fontSize = size;
+        
+        snowflake.style.animationDelay = Math.random() * 2 + 's';
+        
+        const colors = [
+            'rgba(255, 255, 255, 0.9)',
+            'rgba(168, 155, 220, 0.9)',
+            'rgba(94, 53, 177, 0.9)',
+            'rgba(66, 165, 245, 0.9)',
+            'rgba(255, 255, 255, 0.8)'
+        ];
+        snowflake.style.color = colors[Math.floor(Math.random() * colors.length)];
+        
+        snowflake.style.willChange = 'transform, opacity';
+        
         container.appendChild(snowflake);
         
-        setTimeout(() => snowflake.remove(), 15000);
+        const removeTime = parseFloat(duration) * 1000 + 2000;
+        setTimeout(() => {
+            if (snowflake.parentNode === container) {
+                container.removeChild(snowflake);
+            }
+        }, removeTime);
     }
+}
+
+function createGarlands() {
+    createGarlandBalls('.garland-balls', isMobile ? 8 : 12);
+}
+
+function createGarlandBalls(selector, count) {
+    const containers = document.querySelectorAll(selector);
+    containers.forEach(container => {
+        container.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+            const ball = document.createElement('div');
+            ball.className = 'ball';
+            ball.style.setProperty('--i', i);
+            
+            ball.style.willChange = 'transform, box-shadow, opacity';
+            
+            container.appendChild(ball);
+        }
+    });
 }
 
 function validateName(name) {
@@ -275,9 +297,66 @@ function validateForm() {
     return isValid;
 }
 
-async function initApp() {
+// ФУНКЦИЯ ДЛЯ ЗАГРУЗКИ ФОТОГРАФИЙ
+async function loadStudentPhotos() {
+    console.log('Начинаю загрузку фотографий студентов...');
+    
+    const loadPromises = students.map(student => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            
+            // Пробуем разные пути к фотографиям
+            const tryPaths = [
+                student.photo,
+                student.photo.startsWith('photos/') ? student.photo : `photos/${student.photo}`,
+                student.photo.startsWith('./photos/') ? student.photo : `./photos/${student.photo}`,
+                student.photo.replace('photos/', 'images/')
+            ];
+            
+            let currentTry = 0;
+            
+            function tryNextPath() {
+                if (currentTry >= tryPaths.length) {
+                    console.log('Не удалось загрузить фото для: ' + student.name);
+                    student.photoLoaded = false;
+                    resolve(null);
+                    return;
+                }
+                
+                img.src = tryPaths[currentTry];
+                currentTry++;
+                
+                img.onload = function() {
+                    console.log('Фото загружено: ' + student.name);
+                    student.photo = img.src; // Обновляем путь на рабочий
+                    student.photoLoaded = true;
+                    resolve(img);
+                };
+                
+                img.onerror = tryNextPath;
+            }
+            
+            tryNextPath();
+        });
+    });
+    
+    await Promise.allSettled(loadPromises);
+    console.log('Загрузка фотографий завершена');
+}
+
+function initApp() {
+    if (isMobile) {
+        document.body.classList.add('mobile');
+    }
+    
+    // Сразу создаем снежинки
     createSnowflakes();
-    setInterval(createSnowflakes, 3000);
+    
+    // Запускаем создание снежинок с разным интервалом
+    const snowflakeInterval = isMobile ? 1200 : 800;
+    setInterval(createSnowflakes, snowflakeInterval);
+    
+    createGarlands();
     
     const userNameInput = document.getElementById('userName');
     const userEmailInput = document.getElementById('userEmail');
@@ -285,6 +364,20 @@ async function initApp() {
     if (userNameInput && userEmailInput) {
         userNameInput.addEventListener('input', validateForm);
         userEmailInput.addEventListener('input', validateForm);
+        
+        if (isMobile) {
+            userNameInput.addEventListener('focus', function() {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+            
+            userEmailInput.addEventListener('focus', function() {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+        }
         
         userNameInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') registerUser();
@@ -296,7 +389,7 @@ async function initApp() {
     
     const existingVoter = checkExistingVote();
     if (existingVoter) {
-        showNotification(`Вы уже проголосовали как: ${existingVoter.name}`, 'error');
+        showNotification(`Вы уже голосовали как: ${existingVoter.name}`, 'error');
         const savedUser = localStorage.getItem(CURRENT_USER_KEY);
         if (savedUser) {
             try {
@@ -323,6 +416,18 @@ async function initApp() {
     }
     
     updateStats();
+    
+    // Загружаем фотографии в фоне
+    loadStudentPhotos().catch(error => {
+        console.log('Ошибка при загрузке фото: ', error);
+    });
+    
+    // Оптимизация для touch устройств
+    if (isTouchDevice) {
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+    }
 }
 
 function showRegistrationSection() {
@@ -338,17 +443,15 @@ function showVotingSection() {
     if (regSection) regSection.style.display = 'none';
     if (votingSection) votingSection.style.display = 'block';
     
-    if (currentUser) {
-        const userNameDisplay = document.getElementById('userNameDisplay');
-        if (userNameDisplay) userNameDisplay.textContent = currentUser.name;
-        
-        const logoutBtn = document.querySelector('.user-info .logout-button');
-        if (logoutBtn) logoutBtn.style.display = 'none';
-    }
-    
     renderNominations();
     setupModal();
     updateStats();
+    
+    if (isMobile) {
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+    }
 }
 
 function registerUser() {
@@ -376,13 +479,13 @@ function registerUser() {
     );
     
     if (existingUser) {
-        showNotification('Этот email уже зарегистрирован! Один человек может голосовать только один раз.', 'error');
+        showNotification('Этот email уже зарегистрирован!', 'error');
         return;
     }
     
     const existingVoter = checkExistingVote();
     if (existingVoter) {
-        showNotification(`Вы уже проголосовали как: ${existingVoter.name}`, 'error');
+        showNotification(`Вы уже голосовали как: ${existingVoter.name}`, 'error');
         return;
     }
     
@@ -407,7 +510,7 @@ function registerUser() {
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
     
     showVotingSection();
-    showNotification(`Добро пожаловать, ${userName}! Приятного голосования!`, 'success');
+    showNotification(`Добро пожаловать, ${userName}!`, 'success');
 }
 
 function renderNominations() {
@@ -428,29 +531,69 @@ function renderNominations() {
         const card = createNominationCard(nomination);
         otherContainer.appendChild(card);
     });
+    
+    setTimeout(() => {
+        alignButtonsHeight();
+    }, 100);
+}
+
+function alignButtonsHeight() {
+    const cards = document.querySelectorAll('.nomination-card');
+    let maxButtonHeight = 0;
+    
+    cards.forEach(card => {
+        const button = card.querySelector('.vote-button');
+        if (button) {
+            button.style.height = 'auto';
+            const height = button.offsetHeight;
+            if (height > maxButtonHeight) {
+                maxButtonHeight = height;
+            }
+        }
+    });
+    
+    cards.forEach(card => {
+        const button = card.querySelector('.vote-button');
+        if (button) {
+            button.style.height = maxButtonHeight + 'px';
+            button.style.display = 'flex';
+            button.style.alignItems = 'center';
+            button.style.justifyContent = 'center';
+        }
+    });
 }
 
 function createNominationCard(nomination) {
     const card = document.createElement('div');
-    card.className = `nomination-card ${nomination.isMain ? 'main-card' : ''}`;
-    
-    if (nomination.gender === 'male') card.classList.add('male-nomination');
-    else if (nomination.gender === 'female') card.classList.add('female-nomination');
+    if (nomination.isMain) {
+        if (nomination.gender === 'male') {
+            card.className = 'nomination-card male-card';
+        } else {
+            card.className = 'nomination-card female-card';
+        }
+    } else {
+        card.className = 'nomination-card other-card';
+    }
     
     const allVotes = getAllVotes();
     const userVotes = allVotes[currentUser?.id] || {};
     const selectedStudent = userVotes[nomination.id];
     
+    let description = nomination.description;
+    if (isMobile && description.length > 80) {
+        description = description.substring(0, 80) + '...';
+    }
+    
     card.innerHTML = `
         <h3>${nomination.title}</h3>
-        <p>${nomination.description}</p>
+        <p>${description}</p>
         <div class="selected-student" id="selected-${nomination.id}" 
              style="${selectedStudent ? 'display: flex' : 'display: none'}">
             <span id="selected-name-${nomination.id}">${selectedStudent || ''}</span>
         </div>
-        <button class="vote-button nomination-vote-btn" onclick="openStudentSelection('${nomination.id}')">
-            <span class="btn-text">${selectedStudent ? 'Изменить выбор' : 'Выбрать студента'}</span>
-            <span class="btn-arrow">→</span>
+        <button class="vote-button" onclick="openStudentSelection('${nomination.id}')">
+            <span class="button-text">${selectedStudent ? 'Изменить выбор' : 'Выбрать студента'}</span>
+            <span class="button-arrow"></span>
         </button>
     `;
     
@@ -460,7 +603,6 @@ function createNominationCard(nomination) {
 function setupModal() {
     const modal = document.getElementById('studentModal');
     const closeBtn = document.querySelector('#studentModal .close');
-    const confirmBtn = document.getElementById('confirmSelection');
 
     if (closeBtn) {
         closeBtn.onclick = () => {
@@ -468,8 +610,6 @@ function setupModal() {
             currentNomination = null;
         };
     }
-    
-    if (confirmBtn) confirmBtn.onclick = confirmSelection;
 
     window.onclick = (event) => {
         if (event.target === modal) {
@@ -504,82 +644,129 @@ function openStudentSelection(nominationId) {
         filteredStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
     }
 
+    const columns = isMobile ? 2 : 4;
+    studentsGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
     filteredStudents.forEach((student) => {
         const studentCard = document.createElement('div');
-        studentCard.className = `student-card ${student.gender}`;
+        studentCard.className = 'student-card';
         
         if (currentSelection === student.name) studentCard.classList.add('selected');
         
-        const photoDiv = document.createElement('div');
-        photoDiv.className = 'student-photo';
-        
-        if (!nomination.gender) {
-            photoDiv.style.borderColor = 'rgba(255, 248, 240, 0.6)';
-        } else {
-            if (student.gender === 'female') {
-                photoDiv.style.borderColor = '#ff6b9d';
-            } else {
-                photoDiv.style.borderColor = '#4fc3f7';
-            }
-        }
+        const photoContainer = document.createElement('div');
+        photoContainer.className = 'student-photo';
         
         const img = document.createElement('img');
-        img.src = student.photo;
-        img.alt = student.name;
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.borderRadius = '50%';
-        img.style.objectFit = 'cover';
         
-        img.onerror = function() {
-            img.style.display = 'none';
-            showInitials(photoDiv, student, nomination);
+        // Пробуем загрузить фото с разных путей
+        const tryImageLoad = (src, attempts = 3) => {
+            return new Promise((resolve) => {
+                let attempt = 0;
+                
+                function tryLoad() {
+                    attempt++;
+                    if (attempt > attempts) {
+                        resolve(false);
+                        return;
+                    }
+                    
+                    img.src = src;
+                    img.alt = student.name;
+                    img.loading = 'lazy';
+                    
+                    img.onload = () => {
+                        resolve(true);
+                    };
+                    
+                    img.onerror = () => {
+                        // Пробуем альтернативные пути
+                        const altPaths = [
+                            src,
+                            src.startsWith('photos/') ? src : `photos/${src}`,
+                            src.startsWith('./photos/') ? src : `./photos/${src}`,
+                            'https://via.placeholder.com/140x140/5e35b1/ffffff?text=' + encodeURIComponent(student.name.substring(0, 2))
+                        ];
+                        
+                        if (attempt < altPaths.length) {
+                            setTimeout(() => tryLoad(altPaths[attempt]), 100);
+                        } else {
+                            resolve(false);
+                        }
+                    };
+                }
+                
+                tryLoad();
+            });
         };
         
-        img.onload = function() {
-            photoDiv.classList.add('has-image');
-        };
+        // Сначала пробуем загрузить основное фото
+        tryImageLoad(student.photo).then(success => {
+            if (!success) {
+                // Если фото не загрузилось, показываем инициалы на цветном фоне
+                img.style.display = 'none';
+                photoContainer.style.background = student.gender === 'female' 
+                    ? 'linear-gradient(135deg, #ec407a, #ab47bc)'
+                    : 'linear-gradient(135deg, #42a5f5, #5e35b1)';
+                
+                const initials = document.createElement('div');
+                initials.className = 'student-initials';
+                initials.textContent = getInitials(student.name);
+                initials.style.cssText = `
+                    color: white;
+                    font-size: 2em;
+                    font-weight: bold;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    height: 100%;
+                `;
+                photoContainer.appendChild(initials);
+            }
+        });
         
-        photoDiv.appendChild(img);
+        photoContainer.appendChild(img);
         
-        showInitials(photoDiv, student, nomination);
-
-        studentCard.innerHTML = `<div class="student-name">${student.name}</div>`;
-        studentCard.insertBefore(photoDiv, studentCard.firstChild);
-        studentCard.onclick = () => selectStudent(student.name, studentCard);
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'student-name';
+        let displayName = student.name;
+        if (isMobile) {
+            const parts = student.name.split(' ');
+            displayName = parts[0] + ' ' + (parts[1]?.[0] || '') + '.';
+        }
+        nameDiv.textContent = displayName;
+        
+        studentCard.appendChild(photoContainer);
+        studentCard.appendChild(nameDiv);
+        
+        if (isTouchDevice) {
+            studentCard.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                selectStudent(student.name, studentCard);
+            }, { passive: false });
+        } else {
+            studentCard.onclick = () => selectStudent(student.name, studentCard);
+        }
+        
         studentsGrid.appendChild(studentCard);
     });
 
     confirmBtn.disabled = !currentSelection;
     modal.style.display = 'block';
+    
+    if (isMobile) {
+        setTimeout(() => {
+            modal.scrollTop = 0;
+        }, 50);
+    }
 }
 
-function showInitials(photoDiv, student, nomination) {
-    const initials = student.name.split(' ').map(n => n[0]).join('');
-    const initialsSpan = document.createElement('span');
-    initialsSpan.textContent = initials;
-    initialsSpan.style.cssText = `
-        font-weight: 600;
-        font-size: 1.1em;
-        color: #fff8f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-    `;
-    
-    photoDiv.appendChild(initialsSpan);
-    
-    if (!nomination.gender) {
-        photoDiv.style.background = 'linear-gradient(135deg, #1e1e24, rgba(146, 20, 12, 0.7))';
-    } else {
-        if (student.gender === 'female') {
-            photoDiv.style.background = 'linear-gradient(135deg, #ff6b9d, #c2185b)';
-        } else {
-            photoDiv.style.background = 'linear-gradient(135deg, #4fc3f7, #1565c0)';
-        }
-    }
+function getInitials(name) {
+    return name.split(' ')
+        .map(word => word[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
 }
 
 function selectStudent(studentName, cardElement) {
@@ -591,6 +778,10 @@ function selectStudent(studentName, cardElement) {
     Array.from(studentsGrid.children).forEach(card => card.classList.remove('selected'));
     cardElement.classList.add('selected');
     confirmBtn.disabled = false;
+    
+    if (isTouchDevice && navigator.vibrate) {
+        navigator.vibrate(20);
+    }
 }
 
 function confirmSelection() {
@@ -618,7 +809,7 @@ function confirmSelection() {
 function updateNominationDisplay(nominationId, studentName) {
     const selectedDiv = document.getElementById(`selected-${nominationId}`);
     const selectedName = document.getElementById(`selected-name-${nominationId}`);
-    const buttons = document.querySelectorAll(`.nomination-vote-btn[onclick="openStudentSelection('${nominationId}')"]`);
+    const buttons = document.querySelectorAll(`button[onclick="openStudentSelection('${nominationId}')"]`);
     
     if (selectedDiv && selectedName) {
         selectedName.textContent = studentName;
@@ -626,9 +817,95 @@ function updateNominationDisplay(nominationId, studentName) {
     }
     
     buttons.forEach(button => {
-        const btnText = button.querySelector('.btn-text');
-        if (btnText) btnText.textContent = 'Изменить выбор';
+        const buttonText = button.querySelector('.button-text');
+        if (buttonText) buttonText.textContent = 'Изменить выбор';
     });
+    
+    setTimeout(() => {
+        alignButtonsHeight();
+    }, 100);
+}
+
+function updateStats() {
+    if (!currentUser) return;
+    
+    const allVotes = getAllVotes();
+    const userVotes = allVotes[currentUser.id] || {};
+    const completedNominations = Object.values(userVotes).filter(v => v).length;
+    
+    const completedElement = document.getElementById('completedNominations');
+    const totalVotesElement = document.getElementById('totalVotes');
+    
+    if (completedElement) completedElement.textContent = `${completedNominations}/${nominations.length}`;
+    
+    let totalVotesCount = 0;
+    Object.values(allVotes).forEach(userVotes => {
+        totalVotesCount += Object.values(userVotes).filter(v => v).length;
+    });
+    
+    if (totalVotesElement) totalVotesElement.textContent = totalVotesCount;
+}
+
+function showNotification(message, type = 'info') {
+    const oldNotifications = document.querySelectorAll('.notification');
+    oldNotifications.forEach(notif => notif.remove());
+
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    notification.style.cssText = `
+        position: fixed;
+        ${isMobile ? 'top: 15px; right: 15px; left: 15px;' : 'top: 25px; right: 25px; max-width: 350px;'}
+        padding: ${isMobile ? '14px 18px' : '18px 24px'};
+        border-radius: 12px;
+        color: #f0f0ff;
+        font-weight: 600;
+        z-index: 10000;
+        background: ${type === 'error' ? 'linear-gradient(135deg, #d32f2f, #b71c1c)' : 
+                     type === 'success' ? 'linear-gradient(135deg, #388e3c, #1b5e20)' : 
+                     'linear-gradient(135deg, #5e35b1, #4527a0)'};
+        border: 2px solid ${type === 'error' ? '#ff5252' : 
+                         type === 'success' ? '#69f0ae' : 
+                         '#a89bdc'};
+        font-size: ${isMobile ? '0.95em' : '1.05em'};
+        text-align: center;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        animation: slideIn 0.3s ease;
+        backdrop-filter: blur(10px);
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+if (!document.querySelector('#notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            to {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 function showPasswordModal() {
@@ -682,20 +959,19 @@ async function showLiveResults() {
     
     if (!modal || !resultsGrid || !resultsTitle) return;
     
-    resultsTitle.textContent = '📊 РЕЗУЛЬТАТЫ ГОЛОСОВАНИЯ';
+    resultsTitle.textContent = 'РЕЗУЛЬТАТЫ ГОЛОСОВАНИЯ';
     resultsGrid.innerHTML = '<div class="loading">Загрузка данных...</div>';
     
     modal.style.display = 'block';
     hideAdminPanel();
     
     try {
-        const votes = await getDetailedVotesFromFirebase();
+        const votes = await getAllVotesFromFirebase();
         const results = calculateResults(votes);
         
         let html = `
-            <div class="results-stats" style="text-align: center; margin-bottom: 20px; font-size: 1.1em;">
-                <strong>Всего проголосовало: ${getUniqueVotersCount(votes)} человек</strong><br>
-                <strong>Всего голосов: ${votes.length}</strong>
+            <div class="results-stats" style="text-align: center; margin-bottom: 25px; font-size: 1.2em;">
+                <strong>Всего голосов: ${Object.values(votes).reduce((acc, user) => acc + Object.values(user).length, 0)}</strong>
             </div>
         `;
         
@@ -716,12 +992,11 @@ async function showLiveResults() {
                 
                 sortedResults.forEach(([student, votes], index) => {
                     const percentage = totalVotes > 0 ? (votes / totalVotes * 100).toFixed(1) : 0;
-                    const isLeading = index === 0 && votes > 0;
                     html += `
-                        <li class="${isLeading ? 'leading' : ''}">
+                        <li>
                             <span class="student-result-name">${student}</span>
                             <div class="result-details">
-                                <span style="margin-right: 10px; color: #fff8f0;">${percentage}%</span>
+                                <span style="margin-right: 12px; color: #f0f0ff; font-weight: 600;">${percentage}%</span>
                                 <span class="vote-count">${votes} гол.</span>
                             </div>
                         </li>
@@ -748,7 +1023,7 @@ async function showAllVoters() {
     
     if (!modal || !resultsGrid || !resultsTitle) return;
     
-    resultsTitle.textContent = '👥 ВСЕ ПРОГОЛОСОВАВШИЕ';
+    resultsTitle.textContent = 'ВСЕ ПРОГОЛОСОВАВШИЕ';
     resultsGrid.innerHTML = '<div class="loading">Загрузка данных...</div>';
     
     modal.style.display = 'block';
@@ -759,7 +1034,7 @@ async function showAllVoters() {
         const voters = groupVotesByUser(votes);
         
         let html = `
-            <div class="results-stats" style="text-align: center; margin-bottom: 20px; font-size: 1.1em;">
+            <div class="results-stats" style="text-align: center; margin-bottom: 25px; font-size: 1.2em;">
                 <strong>Всего проголосовало: ${voters.length} человек</strong>
             </div>
         `;
@@ -768,9 +1043,13 @@ async function showAllVoters() {
             html += '<div class="no-votes" style="text-align: center;">Пока никто не проголосовал</div>';
         } else {
             voters.forEach((voter, index) => {
+                const shortName = isMobile 
+                    ? voter.userName.split(' ')[0] + ' ' + voter.userName.split(' ')[1]?.[0] + '.'
+                    : voter.userName;
+                
                 html += `
                     <div class="result-item">
-                        <h4>${index + 1}. ${voter.userName}</h4>
+                        <h4>${index + 1}. ${shortName}</h4>
                         <div class="results-stats">
                             Email: ${voter.userEmail}<br>
                             Проголосовал в ${Object.keys(voter.votes).length} номинациях
@@ -780,11 +1059,15 @@ async function showAllVoters() {
                 
                 Object.entries(voter.votes).forEach(([nominationId, studentName]) => {
                     const nomination = nominations.find(n => n.id === nominationId);
+                    const shortNomination = nomination?.title.length > 30 
+                        ? nomination.title.substring(0, 30) + '...' 
+                        : nomination?.title || nominationId;
+                    
                     html += `
                         <li>
-                            <span class="student-result-name">${nomination?.title || nominationId}</span>
+                            <span class="student-result-name">${shortNomination}</span>
                             <div class="result-details">
-                                <span style="color: #fff8f0;">→ ${studentName}</span>
+                                <span style="color: #f0f0ff; font-weight: 500;">→ ${studentName}</span>
                             </div>
                         </li>
                     `;
@@ -801,6 +1084,151 @@ async function showAllVoters() {
     }
 }
 
+function closeResults() {
+    const modal = document.getElementById('resultsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function downloadResultsImage() {
+    try {
+        showNotification('Генерация изображения...', 'info');
+        
+        const votes = await getAllVotesFromFirebase();
+        const results = calculateResults(votes);
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.style.cssText = `
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            width: 800px;
+            background: linear-gradient(135deg, #15132b, #0c0a1a);
+            color: #f0f0ff;
+            padding: 40px;
+            font-family: 'Inter', sans-serif;
+            border: 3px solid #5e35b1;
+            border-radius: 20px;
+        `;
+        
+        let html = `
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #f0f0ff; margin-bottom: 10px; font-size: 2.2em; font-weight: 700;">
+                    Антипремия "Так себе достижения"
+                </h1>
+                <div style="color: #a89bdc; font-size: 1.2em; margin-bottom: 20px;">
+                    Результаты голосования
+                </div>
+                <div style="background: linear-gradient(135deg, #5e35b1, #4527a0); 
+                            padding: 8px 20px; border-radius: 20px; display: inline-block; font-weight: 600;">
+                    Всего голосов: ${Object.values(votes).reduce((acc, user) => acc + Object.values(user).length, 0)}
+                </div>
+            </div>
+        `;
+        
+        nominations.forEach((nomination, index) => {
+            const nominationResults = results[nomination.id] || {};
+            const totalVotes = Object.values(nominationResults).reduce((sum, count) => sum + count, 0);
+            
+            html += `
+                <div style="margin-bottom: 25px; background: rgba(94, 53, 177, 0.1); 
+                           padding: 20px; border-radius: 15px; border-left: 4px solid #5e35b1;">
+                    <h3 style="color: #f0f0ff; margin-bottom: 15px; font-size: 1.3em; font-weight: 600;">
+                        ${index + 1}. ${nomination.title}
+                    </h3>
+            `;
+            
+            if (totalVotes > 0) {
+                const sortedResults = Object.entries(nominationResults)
+                    .sort(([,a], [,b]) => b - a);
+                
+                sortedResults.forEach(([student, votes], i) => {
+                    const percentage = totalVotes > 0 ? (votes / totalVotes * 100).toFixed(1) : 0;
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; 
+                                    padding: 12px 0; border-bottom: 1px solid rgba(168, 155, 220, 0.2);">
+                            <span style="color: #f0f0ff; font-size: 1.1em; font-weight: 500;">
+                                ${i + 1}. ${student}
+                            </span>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span style="color: #a89bdc; font-weight: 600;">${percentage}%</span>
+                                <span style="background: linear-gradient(135deg, #5e35b1, #4527a0); 
+                                           padding: 4px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9em;">
+                                    ${votes} гол.
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div style="color: rgba(168, 155, 220, 0.7); text-align: center; padding: 20px;">Голосов пока нет</div>';
+            }
+            
+            html += '</div>';
+        });
+        
+        html += `
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; 
+                        border-top: 1px solid rgba(94, 53, 177, 0.3); 
+                        color: rgba(168, 155, 220, 0.7); font-size: 0.9em;">
+                Сгенерировано: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}
+            </div>
+        `;
+        
+        tempDiv.innerHTML = html;
+        document.body.appendChild(tempDiv);
+        
+        const canvas = await html2canvas(tempDiv, {
+            scale: 2,
+            backgroundColor: null,
+            useCORS: true,
+            logging: false
+        });
+        
+        const link = document.createElement('a');
+        link.download = `результаты_антипремии_${new Date().toLocaleDateString('ru-RU')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        document.body.removeChild(tempDiv);
+        
+        showNotification('Изображение скачано!', 'success');
+        
+    } catch (error) {
+        showNotification('Ошибка генерации изображения', 'error');
+    }
+}
+
+async function getAllVotesFromFirebase() {
+    try {
+        const snapshot = await db.collection('votes').get();
+        const votes = {};
+        snapshot.forEach(doc => {
+            const vote = doc.data();
+            if (!votes[vote.userId]) votes[vote.userId] = {};
+            votes[vote.userId][vote.nominationId] = vote.studentName;
+        });
+        return votes;
+    } catch (error) {
+        return getAllVotes();
+    }
+}
+
+async function getDetailedVotesFromFirebase() {
+    try {
+        const snapshot = await db.collection('votes').get();
+        const votes = [];
+        snapshot.forEach(doc => {
+            votes.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        return votes;
+    } catch (error) {
+        return [];
+    }
+}
+
 function calculateResults(votes) {
     const results = {};
     
@@ -808,21 +1236,18 @@ function calculateResults(votes) {
         results[nomination.id] = {};
     });
     
-    votes.forEach(vote => {
-        if (vote.studentName && results[vote.nominationId]) {
-            if (!results[vote.nominationId][vote.studentName]) {
-                results[vote.nominationId][vote.studentName] = 0;
+    Object.values(votes).forEach(userVotes => {
+        Object.entries(userVotes).forEach(([nominationId, studentName]) => {
+            if (studentName && results[nominationId]) {
+                if (!results[nominationId][studentName]) {
+                    results[nominationId][studentName] = 0;
+                }
+                results[nominationId][studentName]++;
             }
-            results[vote.nominationId][vote.studentName]++;
-        }
+        });
     });
     
     return results;
-}
-
-function getUniqueVotersCount(votes) {
-    const uniqueUserIds = new Set(votes.map(vote => vote.userId));
-    return uniqueUserIds.size;
 }
 
 function groupVotesByUser(votes) {
@@ -843,55 +1268,6 @@ function groupVotesByUser(votes) {
     return Object.values(users).sort((a, b) => a.userName.localeCompare(b.userName));
 }
 
-function closeResults() {
-    const modal = document.getElementById('resultsModal');
-    if (modal) modal.style.display = 'none';
-}
-
-async function exportData() {
-    try {
-        const votes = await getDetailedVotesFromFirebase();
-        const results = calculateResults(votes);
-        
-        let csvContent = "Номинация,Студент,Количество голосов,Процент\n";
-        
-        nominations.forEach(nomination => {
-            const nominationResults = results[nomination.id] || {};
-            const totalVotes = Object.values(nominationResults).reduce((sum, count) => sum + count, 0);
-            
-            Object.entries(nominationResults)
-                .sort(([,a], [,b]) => b - a)
-                .forEach(([student, votes]) => {
-                    const percentage = totalVotes > 0 ? (votes / totalVotes * 100).toFixed(2) : 0;
-                    csvContent += `"${nomination.title}","${student}",${votes},${percentage}%\n`;
-                });
-        });
-        
-        csvContent += "\n\nДетали голосования:\nПользователь,Email,Номинация,Выбранный студент,Время\n";
-        
-        votes.forEach(vote => {
-            const nomination = nominations.find(n => n.id === vote.nominationId);
-            const time = vote.timestamp ? new Date(vote.timestamp.seconds * 1000).toLocaleString('ru-RU') : 'N/A';
-            csvContent += `"${vote.userName}","${vote.userEmail}","${nomination?.title || vote.nominationId}","${vote.studentName}","${time}"\n`;
-        });
-        
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `результаты_премии_исп_${new Date().toLocaleDateString('ru-RU')}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showNotification('Данные экспортированы в CSV!', 'success');
-        hideAdminPanel();
-    } catch (error) {
-        showNotification('Ошибка экспорта данных', 'error');
-    }
-}
-
 async function resetVoting() {
     if (confirm('ВНИМАНИЕ! Это действие сбросит ВСЕ данные голосования. Все голоса будут удалены без возможности восстановления. Продолжить?')) {
         try {
@@ -907,123 +1283,46 @@ async function resetVoting() {
 
             localStorage.removeItem(ALL_VOTES_KEY);
             localStorage.removeItem(ALL_USERS_KEY);
-            localStorage.removeItem(BROWSER_FINGERPRINT_KEY);
             
-            const currentUserBackup = localStorage.getItem(CURRENT_USER_KEY);
-            if (currentUserBackup) {
-                const user = JSON.parse(currentUserBackup);
-                const newFingerprint = generateBrowserFingerprint();
-                
-                user.browserFingerprint = newFingerprint;
-                localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-                currentUser = user;
-                
-                const allUsers = {};
-                allUsers[user.id] = {
-                    name: user.name,
-                    email: user.email,
-                    registeredAt: new Date().toISOString(),
-                    browserFingerprint: newFingerprint
-                };
-                saveAllUsers(allUsers);
-                
-                localStorage.setItem(BROWSER_FINGERPRINT_KEY, newFingerprint);
-            }
-
-            showNotification('✅ Все данные голосования полностью сброшены! Теперь можно голосовать заново.', 'success');
-
+            showNotification('Данные голосования сброшены!', 'success');
+            
             setTimeout(() => {
-                renderNominations();
-                updateStats();
-                hideAdminPanel();
-                
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-            }, 1000);
+                location.reload();
+            }, 1500);
             
         } catch (error) {
-            showNotification('❌ Ошибка при сбросе данных: ' + error.message, 'error');
+            showNotification('Ошибка сброса данных', 'error');
         }
     }
 }
 
-function updateStats() {
-    if (!currentUser) return;
-    
-    const allVotes = getAllVotes();
-    const userVotes = allVotes[currentUser.id] || {};
-    const completedNominations = Object.values(userVotes).filter(v => v).length;
-    
-    const completedElement = document.getElementById('completedNominations');
-    const totalVotesElement = document.getElementById('totalVotes');
-    const totalVotersElement = document.getElementById('totalVoters');
-    
-    if (completedElement) completedElement.textContent = `${completedNominations}/${nominations.length}`;
-    
-    let totalVotesCount = 0;
-    Object.values(allVotes).forEach(userVotes => {
-        totalVotesCount += Object.values(userVotes).filter(v => v).length;
-    });
-    
-    if (totalVotesElement) totalVotesElement.textContent = totalVotesCount;
-    
-    const totalVoters = Object.keys(allVotes).length;
-    if (totalVotersElement) totalVotersElement.textContent = totalVoters;
-}
-
-function showNotification(message, type = 'info') {
-    const oldNotifications = document.querySelectorAll('.notification');
-    oldNotifications.forEach(notif => notif.remove());
-
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 18px;
-        border-radius: 8px;
-        color: #fff8f0;
-        font-weight: 600;
-        z-index: 10000;
-        transform: translateX(400px);
-        transition: transform 0.4s ease;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-        border: 2px solid rgba(146, 20, 12, 0.7);
-        font-size: 0.95em;
-        max-width: 280px;
-        ${type === 'success' ? 'background: linear-gradient(135deg, #1e1e24, rgba(40, 167, 69, 0.8));' : ''}
-        ${type === 'error' ? 'background: linear-gradient(135deg, #1e1e24, rgba(220, 53, 69, 0.8));' : ''}
-        ${type === 'info' ? 'background: linear-gradient(135deg, #1e1e24, rgba(146, 20, 12, 0.8));' : ''}
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => notification.style.transform = 'translateX(0)', 100);
-    setTimeout(() => {
-        notification.style.transform = 'translateX(400px)';
-        setTimeout(() => notification.remove(), 400);
-    }, 3000);
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    const registerButton = document.querySelector('.login-button');
-    if (registerButton) registerButton.onclick = registerUser;
+    if (isTouchDevice) {
+        document.addEventListener('touchstart', function() {}, {passive: true});
+        
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    }
     
     initApp();
 });
 
 window.registerUser = registerUser;
 window.openStudentSelection = openStudentSelection;
+window.downloadResultsImage = downloadResultsImage;
 window.showPasswordModal = showPasswordModal;
 window.closePasswordModal = closePasswordModal;
 window.checkAdminPassword = checkAdminPassword;
+window.showAdminPanel = showAdminPanel;
 window.hideAdminPanel = hideAdminPanel;
 window.showLiveResults = showLiveResults;
 window.showAllVoters = showAllVoters;
 window.closeResults = closeResults;
-window.exportData = exportData;
 window.resetVoting = resetVoting;
-window.logoutFromAccount = logoutFromAccount;
+window.confirmSelection = confirmSelection;
