@@ -1002,11 +1002,20 @@ body {
     transform: rotate(90deg);
 }
 
+/* ИСПРАВЛЕНИЕ СКРОЛЛА ДЛЯ МОБИЛЬНЫХ */
 .mobile-students-container {
-    max-height: calc(70vh - 150px);
+    max-height: 60vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     margin-bottom: 15px;
+    /* Скрываем скроллбар для красоты */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE и Edge */
+}
+
+/* Скрываем скроллбар в Chrome/Safari */
+.mobile-students-container::-webkit-scrollbar {
+    display: none;
 }
 
 .mobile-student-item {
@@ -1020,6 +1029,9 @@ body {
     transition: all 0.2s ease;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    /* Улучшаем производительность */
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 .mobile-student-item:active {
@@ -1265,8 +1277,18 @@ body {
         height: 8px;
     }
     
+    /* ОПТИМИЗАЦИЯ АНИМАЦИЙ ДЛЯ МОБИЛЬНЫХ */
+    .nomination-card {
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                   box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
     .nomination-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-3px);
+    }
+    
+    .student-card {
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
     .student-card:hover {
@@ -1306,7 +1328,7 @@ body {
     }
     
     .mobile-students-container {
-        max-height: calc(65vh - 150px);
+        max-height: 55vh;
     }
     
     @media (hover: none) and (pointer: coarse) {
@@ -1459,248 +1481,30 @@ body {
         -webkit-overflow-scrolling: touch;
     }
 }
-/* ДОБАВЬТЕ ЭТОТ КОД В КОНЕЦ ФАЙЛА style.css */
 
-/* Исправления для мобильных касаний */
+/* ДОПОЛНИТЕЛЬНЫЕ ИСПРАВЛЕНИЯ ДЛЯ ПЛАВНОСТИ */
 @media (max-width: 768px) {
-    /* Улучшенные активные состояния для кнопок */
-    button:active,
-    .student-card:active,
-    .mobile-student-item:active,
-    .nomination-card:active {
-        transform: scale(0.97) !important;
-        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-    
-    /* Явные стили для активных кнопок */
-    .login-button:active,
-    .vote-button:active,
-    .confirm-button:active,
-    .admin-button:active,
-    .mobile-select-btn:active {
-        background: linear-gradient(135deg, #4527a0, #311b92) !important;
-        box-shadow: 0 4px 12px rgba(94, 53, 177, 0.4) !important;
-    }
-    
-    /* Улучшенные тач-цели для маленьких экранов */
-    button {
-        min-height: 48px !important;
-        padding: 16px 20px !important;
-    }
-    
-    /* Убедитесь, что все кликабельные элементы имеют достаточный размер */
-    .student-card,
-    .mobile-student-item {
-        min-height: 60px;
-    }
-    
-    /* Улучшенная обратная связь при касании */
-    .vote-button:active .button-text,
-    .login-button:active .button-text,
-    .confirm-button:active .button-text {
-        opacity: 0.9;
-    }
-    
-    /* Исправление для модальных окон на мобильных */
-    .modal-content {
-        touch-action: pan-y !important;
-        -webkit-overflow-scrolling: touch !important;
-    }
-    
-    /* Предотвращение выделения текста при касании */
-    button, .student-card, .mobile-student-item {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
-}
-
-/* Улучшенные тап-хайлайты для всех кликабельных элементов */
-button,
-.student-card,
-.mobile-student-item,
-.nomination-card,
-.close,
-.mobile-close-btn {
-    -webkit-tap-highlight-color: rgba(94, 53, 177, 0.3);
-    cursor: pointer;
-}
-
-/* Быстрая анимация для мобильных взаимодействий */
-@media (hover: none) and (pointer: coarse) {
-    .login-button,
-    .vote-button,
-    .confirm-button,
-    .admin-button,
+    /* Улучшаем производительность анимаций */
     .nomination-card,
-    .student-card,
-    .mobile-student-item {
-        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-                    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-                    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-}
-
-
-@supports (-webkit-touch-callout: none) {
-    button,
-    .student-card,
-    .mobile-student-item {
-        cursor: pointer;
-    }
-    
-    input, textarea {
-        font-size: 16px !important;
-    }
-}
-
-
-button:disabled,
-.mobile-select-btn:disabled {
-    opacity: 0.6 !important;
-    transform: none !important;
-    cursor: not-allowed !important;
-}
-
-
-button {
-    position: relative;
-    overflow: hidden;
-}
-
-button:after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.5);
-    opacity: 0;
-    border-radius: 100%;
-    transform: scale(1, 1) translate(-50%);
-    transform-origin: 50% 50%;
-}
-
-button:focus:not(:active)::after {
-    animation: ripple 1s ease-out;
-}
-
-@keyframes ripple {
-    0% {
-        transform: scale(0, 0);
-        opacity: 0.5;
-    }
-    100% {
-        transform: scale(20, 20);
-        opacity: 0;
-    }
-}
-/* ============================================
-   ИСПРАВЛЕНИЯ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ
-   ============================================ */
-
-/* Отключаем выделение при касании */
-* {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-input, textarea {
-    -webkit-user-select: text;
-    user-select: text;
-}
-
-/* Явные стили для кнопок на мобильных */
-@media (max-width: 768px) {
-    /* Увеличиваем размер тач-целей */
-    button, 
     .student-card,
     .mobile-student-item,
-    .nomination-card,
-    .close,
-    .mobile-close-btn {
-        min-height: 44px;
-        min-width: 44px;
-        cursor: pointer !important;
+    .login-button,
+    .vote-button {
+        will-change: transform;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        perspective: 1000;
     }
     
-    /* Активное состояние для всех кнопок */
-    button:active,
-    .student-card:active,
-    .mobile-student-item:active,
-    .nomination-card:active {
-        transform: scale(0.95) !important;
-        opacity: 0.9 !important;
-        transition: transform 0.1s ease, opacity 0.1s ease !important;
+    /* Плавные переходы */
+    * {
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     
-    /* Яркая обратная связь при нажатии */
-    .login-button:active,
-    .vote-button:active,
-    .confirm-button:active,
-    .admin-button:active,
-    .mobile-select-btn:active {
-        background: linear-gradient(135deg, #311b92, #4527a0) !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-    }
-    
-    /* Фикс для модальных окон */
-    .modal {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        overflow-y: auto !important;
+    /* Улучшаем скролл */
+    .mobile-students-container {
+        overflow-y: scroll !important;
         -webkit-overflow-scrolling: touch !important;
-        z-index: 9999 !important;
-    }
-    
-    .modal-content {
-        margin: 10px auto !important;
-        max-height: 90vh !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        position: relative !important;
-    }
-    
-    /* Фикс для iOS */
-    input, textarea {
-        font-size: 16px !important;
-    }
-    
-    /* Убираем стандартное поведение для всех кликабельных элементов */
-    button, a, [onclick] {
-        -webkit-tap-highlight-color: rgba(94, 53, 177, 0.5) !important;
-        tap-highlight-color: rgba(94, 53, 177, 0.5) !important;
-    }
-}
-
-/* Анимация нажатия */
-@keyframes buttonPress {
-    0% { transform: scale(1); }
-    50% { transform: scale(0.96); }
-    100% { transform: scale(1); }
-}
-
-.button-pressed {
-    animation: buttonPress 0.2s ease;
-}
-
-/* Для старых Android */
-@media (hover: none) and (pointer: coarse) {
-    .login-button:hover,
-    .vote-button:hover,
-    .confirm-button:hover,
-    .admin-button:hover {
-        transform: none !important;
-    }
-    
-    .nomination-card:hover,
-    .student-card:hover {
-        transform: none !important;
+        scroll-behavior: smooth;
     }
 }
