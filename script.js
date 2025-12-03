@@ -1,3 +1,8 @@
+// ============================================
+// АНТИПРЕМИЯ "ТАК СЕБЕ ДОСТИЖЕНИЯ"
+// С ФИКСАМИ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ
+// ============================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyA7SFNUZTK85Iw40DdtFEZoGtk6ce4MzqI",
   authDomain: "naminateme.firebaseapp.com",
@@ -7,9 +12,11 @@ const firebaseConfig = {
   appId: "1:249249124120:web:a0a18d9fbc7ee3c54ed86d"
 };
 
+// Инициализация Firebase
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// Данные студентов
 const students = [
     { name: "Барсукова Валерия", photo: "photos/barsukova.jpg", gender: "female" },
     { name: "Гайдукова Валерия", photo: "photos/gaydukova.jpg", gender: "female" },
@@ -32,6 +39,7 @@ const students = [
     { name: "Яцышин Андриан", photo: "photos/yatsyshin.jpg", gender: "male" }
 ];
 
+// Номинации
 const nominations = [
     {
         id: "best_male",
@@ -103,53 +111,29 @@ const nominations = [
     }
 ];
 
+// Глобальные переменные
 let currentNomination = null;
 let currentUser = null;
 const ADMIN_PASSWORD = "TrapMan8@";
 
+// Ключи для localStorage
 const ALL_VOTES_KEY = "antipremia_isp_2024_all_votes";
 const ALL_USERS_KEY = "antipremia_isp_2024_all_users";
 const CURRENT_USER_KEY = "antipremia_isp_2024_current_user";
 const BROWSER_FINGERPRINT_KEY = "antipremia_isp_2024_browser_fingerprint";
 
+// Определяем тип устройства
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
+// Флаги для мобильных
 let mobileSelectedStudent = null;
 let mobileCurrentNomination = null;
+let isProcessing = false; // Защита от множественных нажатий
 
-let isProcessingClick = false; // Флаг для предотвращения множественных нажатий
-
-// Функция для безопасной обработки касаний
-function safeMobileClick(element, callback) {
-    if (isProcessingClick) return;
-    
-    isProcessingClick = true;
-    
-    // Визуальная обратная связь
-    if (element) {
-        element.style.transform = 'scale(0.97)';
-        element.style.transition = 'transform 0.15s cubic-bezier(0.4, 0, 0.2, 1)';
-    }
-    
-    setTimeout(() => {
-        if (element) {
-            element.style.transform = '';
-        }
-        
-        if (typeof callback === 'function') {
-            try {
-                callback();
-            } catch (error) {
-                console.error('Ошибка при обработке клика:', error);
-            }
-        }
-        
-        setTimeout(() => {
-            isProcessingClick = false;
-        }, 300);
-    }, 150);
-}
+// ============================================
+// ФУНКЦИИ ДЛЯ РАБОТЫ С ХРАНИЛИЩЕМ
+// ============================================
 
 function generateBrowserFingerprint() {
     let fingerprint = '';
@@ -191,12 +175,12 @@ async function saveVoteToFirebase(nominationId, studentName) {
         await db.collection('votes').add(voteData);
         saveToLocalStorage(currentUser.id, nominationId, studentName);
         
-        showNotification('Голос сохранен!', 'success');
+        showNotification('✓ Голос сохранен!', 'success');
         return true;
         
     } catch (error) {
         saveToLocalStorage(currentUser.id, nominationId, studentName);
-        showNotification('Голос сохранен локально', 'info');
+        showNotification('✓ Голос сохранен локально', 'info');
         return true;
     }
 }
@@ -238,6 +222,10 @@ function saveToLocalStorage(userId, nominationId, studentName) {
     saveAllVotes(allVotes);
 }
 
+// ============================================
+// ВИЗУАЛЬНЫЕ ЭФФЕКТЫ
+// ============================================
+
 function createSnowflakes() {
     const container = document.getElementById('snowflakes-container');
     if (!container) return;
@@ -277,8 +265,6 @@ function createSnowflakes() {
         ];
         snowflake.style.color = colors[Math.floor(Math.random() * colors.length)];
         
-        snowflake.style.willChange = 'transform, opacity';
-        
         container.appendChild(snowflake);
         
         const removeTime = parseFloat(duration) * 1000 + 2000;
@@ -302,371 +288,78 @@ function createGarlandBalls(selector, count) {
             const ball = document.createElement('div');
             ball.className = 'ball';
             ball.style.setProperty('--i', i);
-            
-            ball.style.willChange = 'transform, box-shadow, opacity';
-            
             container.appendChild(ball);
         }
     });
 }
 
-function validateName(name) {
-    return name.trim().split(' ').length >= 2 && name.trim().length >= 5;
-}
+// ============================================
+// ОСНОВНЫЕ ФУНКЦИИ ПРИЛОЖЕНИЯ
+// ============================================
 
-function validateEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
-function validateForm() {
-    const name = document.getElementById('userName')?.value || '';
-    const email = document.getElementById('userEmail')?.value || '';
-    const nameError = document.getElementById('nameError');
-    const emailError = document.getElementById('emailError');
-    const nameInput = document.getElementById('userName');
-    const emailInput = document.getElementById('userEmail');
-    
-    let isValid = true;
-    
-    if (!validateName(name)) {
-        if (nameError) nameError.style.display = 'block';
-        if (nameInput) nameInput.classList.add('invalid');
-        isValid = false;
-    } else {
-        if (nameError) nameError.style.display = 'none';
-        if (nameInput) nameInput.classList.remove('invalid');
-    }
-    
-    if (!validateEmail(email)) {
-        if (emailError) emailError.style.display = 'block';
-        if (emailInput) emailInput.classList.add('invalid');
-        isValid = false;
-    } else {
-        if (emailError) emailError.style.display = 'none';
-        if (emailInput) emailInput.classList.remove('invalid');
-    }
-    
-    return isValid;
-}
-
-async function loadStudentPhotos() {
-    const loadPromises = students.map(student => {
-        return new Promise((resolve) => {
-            const img = new Image();
-            
-            const tryPaths = [
-                student.photo,
-                student.photo.startsWith('photos/') ? student.photo : `photos/${student.photo}`,
-                student.photo.startsWith('./photos/') ? student.photo : `./photos/${student.photo}`,
-                student.photo.replace('photos/', 'images/')
-            ];
-            
-            let currentTry = 0;
-            
-            function tryNextPath() {
-                if (currentTry >= tryPaths.length) {
-                    student.photoLoaded = false;
-                    resolve(null);
-                    return;
-                }
-                
-                img.src = tryPaths[currentTry];
-                currentTry++;
-                
-                img.onload = function() {
-                    student.photo = img.src;
-                    student.photoLoaded = true;
-                    resolve(img);
-                };
-                
-                img.onerror = tryNextPath;
-            }
-            
-            tryNextPath();
-        });
-    });
-    
-    await Promise.allSettled(loadPromises);
-}
-
-function setupMobileTouchHandlers() {
-    if (!isMobile) return;
-    
-    // Обработчик для кнопки регистрации
-    const loginButton = document.querySelector('.login-button');
-    if (loginButton) {
-        loginButton.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            safeMobileClick(this, registerUser);
-        }, { passive: false });
-    }
-    
-    // Обработчики для кнопок голосования
-    document.addEventListener('click', function(e) {
-        const voteButton = e.target.closest('.vote-button');
-        if (voteButton && isMobile) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const onclickAttr = voteButton.getAttribute('onclick');
-            if (onclickAttr) {
-                const match = onclickAttr.match(/'([^']+)'/);
-                if (match && match[1]) {
-                    safeMobileClick(voteButton, () => openStudentSelection(match[1]));
-                }
-            }
-        }
-    });
-    
-    // Обработчики для кнопок админа
-    const adminButtons = document.querySelectorAll('.admin-button, .admin-access-btn, .confirm-button');
-    adminButtons.forEach(button => {
-        button.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            safeMobileClick(this, () => {
-                const onclickAttr = this.getAttribute('onclick');
-                if (onclickAttr) {
-                    try {
-                        const func = new Function(onclickAttr.replace('onclick="', '').replace('"', ''));
-                        func.call(this);
-                    } catch (error) {
-                        console.error('Ошибка выполнения обработчика:', error);
-                    }
-                }
-            });
-        }, { passive: false });
-    });
-    
-    // Обработчики для карточек студентов
-    document.addEventListener('touchend', function(e) {
-        const studentCard = e.target.closest('.student-card');
-        if (studentCard && isMobile) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const nameElement = studentCard.querySelector('.student-name');
-            if (nameElement) {
-                const studentName = nameElement.textContent;
-                safeMobileClick(studentCard, () => {
-                    selectStudent(studentName, studentCard);
-                });
-            }
-        }
-    }, { passive: false });
-    
-    // Предотвращаем скролл при касании на кнопках
-    document.addEventListener('touchmove', function(e) {
-        if (e.target.closest('button') || e.target.closest('.student-card')) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-}
-
-function initApp() {
-    if (isMobile) {
-        document.body.classList.add('mobile');
-    }
-    
-    createSnowflakes();
-    
-    const snowflakeInterval = isMobile ? 2000 : 1200;
-    setInterval(createSnowflakes, snowflakeInterval);
-    
-    createGarlands();
-    
-    const userNameInput = document.getElementById('userName');
-    const userEmailInput = document.getElementById('userEmail');
-    
-    if (userNameInput && userEmailInput) {
-        userNameInput.addEventListener('input', validateForm);
-        userEmailInput.addEventListener('input', validateForm);
-        
-        if (isMobile) {
-            userNameInput.addEventListener('focus', function() {
-                setTimeout(() => {
-                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            });
-            
-            userEmailInput.addEventListener('focus', function() {
-                setTimeout(() => {
-                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            });
-        }
-        
-        userNameInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') registerUser();
-        });
-        userEmailInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') registerUser();
-        });
-    }
-    
-    const existingVoter = checkExistingVote();
-    if (existingVoter) {
-        showNotification(`Вы уже голосовали как: ${existingVoter.name}`, 'error');
-        const savedUser = localStorage.getItem(CURRENT_USER_KEY);
-        if (savedUser) {
-            try {
-                currentUser = JSON.parse(savedUser);
-                showVotingSection();
-                return;
-            } catch (e) {
-                localStorage.removeItem(CURRENT_USER_KEY);
-            }
-        }
-    }
-    
-    const savedUser = localStorage.getItem(CURRENT_USER_KEY);
-    if (savedUser) {
-        try {
-            currentUser = JSON.parse(savedUser);
-            showVotingSection();
-        } catch (e) {
-            localStorage.removeItem(CURRENT_USER_KEY);
-            showRegistrationSection();
-        }
-    } else {
-        showRegistrationSection();
-    }
-    
-    loadStudentPhotos().catch(error => {});
-    
-    if (isTouchDevice) {
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
-    }
-    
-    initMobileMenu();
-    
-    // Настраиваем обработчики для мобильных
-    setTimeout(() => {
-        setupMobileTouchHandlers();
-    }, 1000);
-    
-    // Исправление для iOS
-    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-        document.body.style.cursor = 'pointer';
-    }
-}
-
-function initMobileMenu() {
-    const overlay = document.createElement('div');
-    overlay.id = 'mobileStudentOverlay';
-    overlay.className = 'mobile-student-overlay';
-    overlay.onclick = closeMobileStudentList;
-    
-    const mobileMenu = document.createElement('div');
-    mobileMenu.id = 'mobileStudentList';
-    mobileMenu.className = 'mobile-student-list';
-    mobileMenu.onclick = function(e) {
-        e.stopPropagation();
-    };
-    
-    mobileMenu.innerHTML = `
-        <div class="mobile-student-header">
-            <h3 class="mobile-student-title" id="mobileStudentTitle">Выберите студента</h3>
-            <button class="mobile-close-btn" onclick="closeMobileStudentList()">×</button>
-        </div>
-        <div class="mobile-students-container" id="mobileStudentsContainer"></div>
-        <button id="mobileSelectBtn" class="mobile-select-btn" disabled onclick="confirmMobileSelection()">
-            Подтвердить выбор
-        </button>
-    `;
-    
-    document.body.appendChild(overlay);
-    document.body.appendChild(mobileMenu);
-    
-    // Настраиваем обработчики для мобильного меню
-    const mobileSelectBtn = document.getElementById('mobileSelectBtn');
-    const mobileCloseBtn = mobileMenu.querySelector('.mobile-close-btn');
-    
-    if (mobileSelectBtn) {
-        mobileSelectBtn.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!this.disabled) {
-                safeMobileClick(this, confirmMobileSelection);
-            }
-        }, { passive: false });
-    }
-    
-    if (mobileCloseBtn) {
-        mobileCloseBtn.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            safeMobileClick(this, closeMobileStudentList);
-        }, { passive: false });
-    }
-}
-
-function showRegistrationSection() {
-    const regSection = document.getElementById('registrationSection');
-    const votingSection = document.getElementById('votingSection');
-    if (regSection) regSection.style.display = 'block';
-    if (votingSection) votingSection.style.display = 'none';
-}
-
-function showVotingSection() {
-    const regSection = document.getElementById('registrationSection');
-    const votingSection = document.getElementById('votingSection');
-    if (regSection) regSection.style.display = 'none';
-    if (votingSection) votingSection.style.display = 'block';
-    
-    renderNominations();
-    setupModal();
-    
-    if (isMobile) {
-        setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 100);
-    }
-}
-
+// ВАЖНО: Простая функция для регистрации
 function registerUser() {
-    if (isProcessingClick) return;
+    if (isProcessing) return;
+    isProcessing = true;
     
-    const userNameInput = document.getElementById('userName');
-    const userEmailInput = document.getElementById('userEmail');
+    // Визуальная обратная связь
+    const button = document.querySelector('.login-button');
+    if (button) {
+        button.style.transform = 'scale(0.95)';
+        button.style.opacity = '0.8';
+    }
     
-    if (!userNameInput || !userEmailInput) return;
-    
-    const userName = userNameInput.value.trim();
-    const userEmail = userEmailInput.value.trim();
+    const userName = document.getElementById('userName')?.value?.trim() || '';
+    const userEmail = document.getElementById('userEmail')?.value?.trim() || '';
     
     if (!userName || !userEmail) {
-        showNotification('Пожалуйста, заполните все поля', 'error');
+        showNotification('Заполните все поля', 'error');
+        isProcessing = false;
+        if (button) {
+            button.style.transform = '';
+            button.style.opacity = '';
+        }
         return;
     }
     
-    if (!validateForm()) {
-        showNotification('Пожалуйста, исправьте ошибки в форме', 'error');
+    // Проверка имени (минимум 2 слова)
+    if (userName.split(' ').filter(w => w.length > 1).length < 2) {
+        showNotification('Введите полное ФИО', 'error');
+        isProcessing = false;
+        if (button) {
+            button.style.transform = '';
+            button.style.opacity = '';
+        }
         return;
     }
     
-    const allUsers = getAllUsers();
-    const existingUser = Object.values(allUsers).find(user => 
-        user.email.toLowerCase() === userEmail.toLowerCase()
-    );
-    
-    if (existingUser) {
-        showNotification('Этот email уже зарегистрирован!', 'error');
+    // Простая проверка email
+    if (!userEmail.includes('@') || !userEmail.includes('.')) {
+        showNotification('Введите корректный email', 'error');
+        isProcessing = false;
+        if (button) {
+            button.style.transform = '';
+            button.style.opacity = '';
+        }
         return;
     }
     
+    // Проверяем, не голосовал ли уже пользователь
     const existingVoter = checkExistingVote();
     if (existingVoter) {
         showNotification(`Вы уже голосовали как: ${existingVoter.name}`, 'error');
+        isProcessing = false;
+        if (button) {
+            button.style.transform = '';
+            button.style.opacity = '';
+        }
         return;
     }
     
+    // Сохраняем отпечаток браузера
     const browserFingerprint = saveBrowserFingerprint();
     
+    // Создаем пользователя
     currentUser = {
         name: userName,
         email: userEmail,
@@ -675,6 +368,8 @@ function registerUser() {
         browserFingerprint: browserFingerprint
     };
     
+    // Сохраняем в localStorage
+    const allUsers = getAllUsers();
     allUsers[currentUser.id] = {
         name: currentUser.name,
         email: currentUser.email,
@@ -685,10 +380,42 @@ function registerUser() {
     
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
     
+    // Показываем секцию голосования
     showVotingSection();
     showNotification(`Добро пожаловать, ${userName}!`, 'success');
+    
+    // Восстанавливаем кнопку
+    setTimeout(() => {
+        isProcessing = false;
+        if (button) {
+            button.style.transform = '';
+            button.style.opacity = '';
+        }
+    }, 1000);
 }
 
+// Показываем секцию голосования
+function showVotingSection() {
+    const regSection = document.getElementById('registrationSection');
+    const votingSection = document.getElementById('votingSection');
+    
+    if (regSection) regSection.style.display = 'none';
+    if (votingSection) {
+        votingSection.style.display = 'block';
+        
+        // Прокручиваем наверх на мобильных
+        if (isMobile) {
+            setTimeout(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 100);
+        }
+        
+        // Рендерим номинации
+        renderNominations();
+    }
+}
+
+// Рендерим номинации
 function renderNominations() {
     const mainContainer = document.getElementById('mainNominationsContainer');
     const otherContainer = document.getElementById('otherNominationsContainer');
@@ -697,50 +424,30 @@ function renderNominations() {
     
     mainContainer.innerHTML = '';
     otherContainer.innerHTML = '';
-
+    
+    // Главные номинации
     nominations.filter(n => n.isMain).forEach(nomination => {
         const card = createNominationCard(nomination);
         mainContainer.appendChild(card);
     });
     
+    // Антиноминации
     nominations.filter(n => !n.isMain).forEach(nomination => {
         const card = createNominationCard(nomination);
         otherContainer.appendChild(card);
     });
     
+    // Настраиваем обработчики для кнопок
     setTimeout(() => {
-        alignButtonsHeight();
+        setupVoteButtons();
     }, 100);
 }
 
-function alignButtonsHeight() {
-    const cards = document.querySelectorAll('.nomination-card');
-    let maxButtonHeight = 0;
-    
-    cards.forEach(card => {
-        const button = card.querySelector('.vote-button');
-        if (button) {
-            button.style.height = 'auto';
-            const height = button.offsetHeight;
-            if (height > maxButtonHeight) {
-                maxButtonHeight = height;
-            }
-        }
-    });
-    
-    cards.forEach(card => {
-        const button = card.querySelector('.vote-button');
-        if (button) {
-            button.style.height = maxButtonHeight + 'px';
-            button.style.display = 'flex';
-            button.style.alignItems = 'center';
-            button.style.justifyContent = 'center';
-        }
-    });
-}
-
+// Создаем карточку номинации
 function createNominationCard(nomination) {
     const card = document.createElement('div');
+    
+    // Определяем класс в зависимости от типа номинации
     if (nomination.isMain) {
         if (nomination.gender === 'male') {
             card.className = 'nomination-card male-card';
@@ -751,15 +458,18 @@ function createNominationCard(nomination) {
         card.className = 'nomination-card other-card';
     }
     
+    // Проверяем, есть ли уже выбранный студент
     const allVotes = getAllVotes();
     const userVotes = allVotes[currentUser?.id] || {};
     const selectedStudent = userVotes[nomination.id];
     
+    // Обрезаем описание для мобильных
     let description = nomination.description;
     if (isMobile && description.length > 80) {
         description = description.substring(0, 80) + '...';
     }
     
+    // Создаем HTML
     card.innerHTML = `
         <h3>${nomination.title}</h3>
         <p>${description}</p>
@@ -767,219 +477,225 @@ function createNominationCard(nomination) {
              style="${selectedStudent ? 'display: flex' : 'display: none'}">
             <span id="selected-name-${nomination.id}">${selectedStudent || ''}</span>
         </div>
-        <button class="vote-button" onclick="openStudentSelection('${nomination.id}')">
+        <button class="vote-button" data-nomination="${nomination.id}">
             <span class="button-text">${selectedStudent ? 'Изменить выбор' : 'Выбрать студента'}</span>
             <span class="button-arrow"></span>
         </button>
     `;
     
-    // Добавляем обработчик для мобильных
-    if (isMobile) {
-        const voteButton = card.querySelector('.vote-button');
-        if (voteButton) {
-            voteButton.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                safeMobileClick(this, () => openStudentSelection(nomination.id));
-            }, { passive: false });
-        }
-    }
-    
     return card;
 }
 
-function setupModal() {
-    const modal = document.getElementById('studentModal');
-    const closeBtn = document.querySelector('#studentModal .close');
-
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            if (modal) modal.style.display = 'none';
-            currentNomination = null;
-        };
-        
-        // Мобильный обработчик
-        if (isMobile) {
-            closeBtn.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                safeMobileClick(this, () => {
-                    if (modal) modal.style.display = 'none';
-                    currentNomination = null;
-                });
-            }, { passive: false });
-        }
-    }
-
-    window.onclick = (event) => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-            currentNomination = null;
-        }
-    };
+// Настраиваем обработчики для кнопок голосования
+function setupVoteButtons() {
+    const voteButtons = document.querySelectorAll('.vote-button');
     
-    // Мобильный обработчик для фона модального окна
-    if (isMobile && modal) {
-        modal.addEventListener('touchend', function(e) {
-            if (e.target === this) {
-                e.preventDefault();
-                this.style.display = 'none';
-                currentNomination = null;
-            }
-        }, { passive: false });
-    }
+    voteButtons.forEach(button => {
+        // Удаляем старые обработчики
+        button.removeEventListener('click', handleVoteClick);
+        button.removeEventListener('touchend', handleVoteTouch);
+        
+        // Добавляем новые
+        button.addEventListener('click', handleVoteClick);
+        button.addEventListener('touchend', handleVoteTouch);
+    });
 }
 
-function openStudentSelection(nominationId) {
-    if (isProcessingClick && isMobile) return;
+// Обработчик клика на кнопку голосования
+function handleVoteClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
     
-    currentNomination = nominationId;
+    if (isProcessing) return;
+    isProcessing = true;
     
-    if (isMobile) {
-        mobileCurrentNomination = nominationId;
-        showMobileStudentList(nominationId);
+    const button = e.currentTarget;
+    const nominationId = button.getAttribute('data-nomination');
+    
+    if (!nominationId) {
+        isProcessing = false;
         return;
     }
     
+    // Визуальная обратная связь
+    button.style.transform = 'scale(0.95)';
+    button.style.opacity = '0.8';
+    
+    console.log('Opening selection for:', nominationId);
+    
+    // Открываем выбор студента
+    setTimeout(() => {
+        openStudentSelection(nominationId);
+        button.style.transform = '';
+        button.style.opacity = '';
+        isProcessing = false;
+    }, 150);
+}
+
+// Обработчик касания на кнопку голосования
+function handleVoteTouch(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    const button = e.currentTarget;
+    const nominationId = button.getAttribute('data-nomination');
+    
+    if (!nominationId) {
+        isProcessing = false;
+        return;
+    }
+    
+    // Визуальная обратная связь для мобильных
+    button.style.transform = 'scale(0.95)';
+    button.style.opacity = '0.8';
+    
+    console.log('Touch: Opening selection for:', nominationId);
+    
+    // Открываем выбор студента с задержкой
+    setTimeout(() => {
+        openStudentSelection(nominationId);
+        
+        // Восстанавливаем кнопку
+        setTimeout(() => {
+            button.style.transform = '';
+            button.style.opacity = '';
+            isProcessing = false;
+        }, 300);
+    }, 100);
+}
+
+// Открываем выбор студента
+function openStudentSelection(nominationId) {
+    console.log('openStudentSelection called for:', nominationId);
+    
+    if (!nominationId || !currentUser) {
+        showNotification('Ошибка: номинация не найдена', 'error');
+        return;
+    }
+    
+    currentNomination = nominationId;
+    
+    // На мобильных используем мобильное меню
+    if (isMobile) {
+        mobileCurrentNomination = nominationId;
+        showMobileStudentList(nominationId);
+    } else {
+        // На десктопе используем модальное окно
+        showDesktopStudentModal(nominationId);
+    }
+}
+
+// Показываем модальное окно на десктопе
+function showDesktopStudentModal(nominationId) {
     const modal = document.getElementById('studentModal');
     const modalTitle = document.getElementById('modalTitle');
     const studentsGrid = document.getElementById('studentsGrid');
     const confirmBtn = document.getElementById('confirmSelection');
-
-    if (!modal || !modalTitle || !studentsGrid || !confirmBtn) return;
-
-    const nomination = nominations.find(n => n.id === nominationId);
-    if (nomination) modalTitle.textContent = nomination.title;
     
+    if (!modal || !modalTitle || !studentsGrid || !confirmBtn) return;
+    
+    // Находим номинацию
+    const nomination = nominations.find(n => n.id === nominationId);
+    if (nomination) {
+        modalTitle.textContent = nomination.title;
+    }
+    
+    // Очищаем контейнер
     studentsGrid.innerHTML = '';
-
+    
+    // Получаем текущий выбор пользователя
     const allVotes = getAllVotes();
     const userVotes = allVotes[currentUser?.id] || {};
     const currentSelection = userVotes[nominationId];
-
+    
+    // Фильтруем студентов по полу (если нужно)
     let filteredStudents;
     if (nomination.gender) {
         filteredStudents = students.filter(student => student.gender === nomination.gender);
     } else {
         filteredStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
     }
-
-    const columns = 4;
-    studentsGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-
+    
+    // Создаем карточки студентов
     filteredStudents.forEach((student) => {
         const studentCard = document.createElement('div');
         studentCard.className = 'student-card';
+        studentCard.dataset.studentName = student.name;
         
-        if (currentSelection === student.name) studentCard.classList.add('selected');
+        // Если студент уже выбран, отмечаем его
+        if (currentSelection === student.name) {
+            studentCard.classList.add('selected');
+        }
         
+        // Создаем фото студента
         const photoContainer = document.createElement('div');
         photoContainer.className = 'student-photo';
         
         const img = document.createElement('img');
+        img.alt = student.name;
+        img.loading = 'lazy';
         
-        const tryImageLoad = (src, attempts = 3) => {
-            return new Promise((resolve) => {
-                let attempt = 0;
-                
-                function tryLoad() {
-                    attempt++;
-                    if (attempt > attempts) {
-                        resolve(false);
-                        return;
-                    }
-                    
-                    img.src = src;
-                    img.alt = student.name;
-                    img.loading = 'lazy';
-                    
-                    img.onload = () => {
-                        resolve(true);
-                    };
-                    
-                    img.onerror = () => {
-                        const altPaths = [
-                            src,
-                            src.startsWith('photos/') ? src : `photos/${src}`,
-                            src.startsWith('./photos/') ? src : `./photos/${src}`,
-                            'https://via.placeholder.com/140x140/5e35b1/ffffff?text=' + encodeURIComponent(student.name.substring(0, 2))
-                        ];
-                        
-                        if (attempt < altPaths.length) {
-                            setTimeout(() => tryLoad(altPaths[attempt]), 100);
-                        } else {
-                            resolve(false);
-                        }
-                    };
-                }
-                
-                tryLoad();
-            });
+        // Пробуем загрузить фото
+        const imgLoader = new Image();
+        imgLoader.src = student.photo;
+        imgLoader.onload = function() {
+            img.src = student.photo;
         };
-        
-        tryImageLoad(student.photo).then(success => {
-            if (!success) {
-                img.style.display = 'none';
-                photoContainer.style.background = student.gender === 'female' 
-                    ? 'linear-gradient(135deg, #ec407a, #ab47bc)'
-                    : 'linear-gradient(135deg, #42a5f5, #5e35b1)';
-                
-                const initials = document.createElement('div');
-                initials.className = 'student-initials';
-                initials.textContent = getInitials(student.name);
-                initials.style.cssText = `
-                    color: white;
-                    font-size: 2em;
-                    font-weight: bold;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 100%;
-                    height: 100%;
-                `;
-                photoContainer.appendChild(initials);
-            }
-        });
+        imgLoader.onerror = function() {
+            // Если фото не загрузилось, показываем инициалы
+            img.style.display = 'none';
+            photoContainer.style.background = student.gender === 'female' 
+                ? 'linear-gradient(135deg, #ec407a, #ab47bc)'
+                : 'linear-gradient(135deg, #42a5f5, #5e35b1)';
+            
+            const initials = document.createElement('div');
+            initials.textContent = getInitials(student.name);
+            initials.style.cssText = `
+                color: white;
+                font-size: 2em;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+            `;
+            photoContainer.appendChild(initials);
+        };
         
         photoContainer.appendChild(img);
         
+        // Имя студента
         const nameDiv = document.createElement('div');
         nameDiv.className = 'student-name';
         nameDiv.textContent = student.name;
         
+        // Собираем карточку
         studentCard.appendChild(photoContainer);
         studentCard.appendChild(nameDiv);
         
-        studentCard.onclick = () => selectStudent(student.name, studentCard);
-        
-        // Мобильный обработчик
-        if (isMobile) {
-            studentCard.addEventListener('touchend', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                safeMobileClick(this, () => selectStudent(student.name, studentCard));
-            }, { passive: false });
-        }
+        // Обработчик клика
+        studentCard.addEventListener('click', function() {
+            selectStudent(student.name, studentCard);
+        });
         
         studentsGrid.appendChild(studentCard);
     });
-
+    
+    // Настраиваем кнопку подтверждения
     confirmBtn.disabled = !currentSelection;
     
-    // Мобильный обработчик для кнопки подтверждения
-    if (isMobile) {
-        confirmBtn.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!this.disabled) {
-                safeMobileClick(this, confirmSelection);
-            }
-        }, { passive: false });
-    }
-    
+    // Показываем модальное окно
     modal.style.display = 'block';
+    
+    // Настраиваем закрытие
+    setupModalClose(modal);
 }
 
+// Получаем инициалы имени
 function getInitials(name) {
     return name.split(' ')
         .map(word => word[0])
@@ -988,141 +704,189 @@ function getInitials(name) {
         .substring(0, 2);
 }
 
+// Выбираем студента
 function selectStudent(studentName, cardElement) {
+    console.log('Student selected:', studentName);
+    
     const studentsGrid = document.getElementById('studentsGrid');
     const confirmBtn = document.getElementById('confirmSelection');
     
     if (!studentsGrid || !confirmBtn) return;
     
-    Array.from(studentsGrid.children).forEach(card => card.classList.remove('selected'));
+    // Снимаем выделение со всех карточек
+    Array.from(studentsGrid.children).forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Выделяем выбранную карточку
     cardElement.classList.add('selected');
+    
+    // Активируем кнопку подтверждения
     confirmBtn.disabled = false;
 }
 
+// Подтверждаем выбор
 function confirmSelection() {
-    if (!currentNomination || !currentUser) return;
+    console.log('Confirming selection...');
+    
+    if (!currentNomination || !currentUser) {
+        showNotification('Ошибка при выборе студента', 'error');
+        return;
+    }
     
     const selectedCard = document.querySelector('#studentModal .student-card.selected');
-    if (!selectedCard) return;
+    if (!selectedCard) {
+        showNotification('Выберите студента', 'error');
+        return;
+    }
     
-    const studentNameElement = selectedCard.querySelector('.student-name');
-    if (!studentNameElement) return;
+    const studentName = selectedCard.dataset.studentName;
+    if (!studentName) {
+        showNotification('Ошибка: имя студента не найдено', 'error');
+        return;
+    }
     
-    const studentName = studentNameElement.textContent;
+    console.log('Saving vote for:', currentNomination, '->', studentName);
     
+    // Сохраняем голос
     saveVoteToFirebase(currentNomination, studentName);
+    
+    // Обновляем отображение
     updateNominationDisplay(currentNomination, studentName);
     
+    // Показываем уведомление
     showNotification(`Вы выбрали: ${studentName}`, 'success');
     
+    // Закрываем модальное окно
     const modal = document.getElementById('studentModal');
     if (modal) modal.style.display = 'none';
+    
     currentNomination = null;
 }
 
+// Обновляем отображение номинации
 function updateNominationDisplay(nominationId, studentName) {
     const selectedDiv = document.getElementById(`selected-${nominationId}`);
     const selectedName = document.getElementById(`selected-name-${nominationId}`);
-    const buttons = document.querySelectorAll(`button[onclick="openStudentSelection('${nominationId}')"]`);
+    const button = document.querySelector(`.vote-button[data-nomination="${nominationId}"]`);
     
     if (selectedDiv && selectedName) {
         selectedName.textContent = studentName;
         selectedDiv.style.display = 'flex';
     }
     
-    buttons.forEach(button => {
+    if (button) {
         const buttonText = button.querySelector('.button-text');
-        if (buttonText) buttonText.textContent = 'Изменить выбор';
-    });
-    
-    setTimeout(() => {
-        alignButtonsHeight();
-    }, 100);
+        if (buttonText) {
+            buttonText.textContent = 'Изменить выбор';
+        }
+    }
 }
 
-function showNotification(message, type = 'info') {
-    const oldNotifications = document.querySelectorAll('.notification');
-    oldNotifications.forEach(notif => notif.remove());
-
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
+// Настраиваем закрытие модального окна
+function setupModalClose(modal) {
+    const closeBtn = modal.querySelector('.close');
     
-    notification.style.cssText = `
-        position: fixed;
-        ${isMobile ? 'top: 15px; right: 15px; left: 15px;' : 'top: 25px; right: 25px; max-width: 350px;'}
-        padding: ${isMobile ? '14px 18px' : '18px 24px'};
-        border-radius: 12px;
-        color: #f0f0ff;
-        font-weight: 600;
-        z-index: 10000;
-        background: ${type === 'error' ? 'linear-gradient(135deg, #d32f2f, #b71c1c)' : 
-                     type === 'success' ? 'linear-gradient(135deg, #388e3c, #1b5e20)' : 
-                     'linear-gradient(135deg, #5e35b1, #4527a0)'};
-        border: 2px solid ${type === 'error' ? '#ff5252' : 
-                         type === 'success' ? '#69f0ae' : 
-                         '#a89bdc'};
-        font-size: ${isMobile ? '0.95em' : '1.05em'};
-        text-align: center;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-        animation: slideIn 0.3s ease;
-        backdrop-filter: blur(10px);
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+            currentNomination = null;
+        };
+    }
+    
+    // Закрытие по клику на фон
+    modal.onclick = function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+            currentNomination = null;
+        }
+    };
+}
+
+// ============================================
+// МОБИЛЬНОЕ МЕНЮ ДЛЯ ВЫБОРА СТУДЕНТОВ
+// ============================================
+
+// Инициализация мобильного меню
+function initMobileMenu() {
+    // Создаем оверлей
+    const overlay = document.createElement('div');
+    overlay.id = 'mobileStudentOverlay';
+    overlay.className = 'mobile-student-overlay';
+    overlay.onclick = closeMobileStudentList;
+    
+    // Создаем меню
+    const mobileMenu = document.createElement('div');
+    mobileMenu.id = 'mobileStudentList';
+    mobileMenu.className = 'mobile-student-list';
+    
+    // HTML меню
+    mobileMenu.innerHTML = `
+        <div class="mobile-student-header">
+            <h3 class="mobile-student-title" id="mobileStudentTitle">Выберите студента</h3>
+            <button class="mobile-close-btn" id="mobileCloseBtn">×</button>
+        </div>
+        <div class="mobile-students-container" id="mobileStudentsContainer"></div>
+        <button id="mobileSelectBtn" class="mobile-select-btn" disabled>
+            Подтвердить выбор
+        </button>
     `;
     
-    document.body.appendChild(notification);
+    // Добавляем в DOM
+    document.body.appendChild(overlay);
+    document.body.appendChild(mobileMenu);
     
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease forwards';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    // Настраиваем обработчики
+    const closeBtn = document.getElementById('mobileCloseBtn');
+    const selectBtn = document.getElementById('mobileSelectBtn');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeMobileStudentList);
+        closeBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            closeMobileStudentList();
+        });
+    }
+    
+    if (selectBtn) {
+        selectBtn.addEventListener('click', confirmMobileSelection);
+        selectBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            if (!this.disabled) {
+                confirmMobileSelection();
+            }
+        });
+    }
 }
 
-if (!document.querySelector('#notification-styles')) {
-    const style = document.createElement('style');
-    style.id = 'notification-styles';
-    style.textContent = `
-        @keyframes slideIn {
-            from {
-                transform: translateY(-100px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        
-        @keyframes slideOut {
-            to {
-                transform: translateY(-100px);
-                opacity: 0;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-}
-
+// Показываем мобильное меню
 function showMobileStudentList(nominationId) {
+    console.log('Showing mobile list for:', nominationId);
+    
     const nomination = nominations.find(n => n.id === nominationId);
     if (!nomination) return;
     
     const overlay = document.getElementById('mobileStudentOverlay');
     const list = document.getElementById('mobileStudentList');
     const title = document.getElementById('mobileStudentTitle');
-    const listContainer = document.getElementById('mobileStudentsContainer');
+    const container = document.getElementById('mobileStudentsContainer');
     const selectBtn = document.getElementById('mobileSelectBtn');
     
-    if (!overlay || !list || !title || !listContainer || !selectBtn) return;
+    if (!overlay || !list || !title || !container || !selectBtn) return;
     
+    // Устанавливаем заголовок
     title.textContent = nomination.title;
     
-    listContainer.innerHTML = '';
+    // Очищаем контейнер
+    container.innerHTML = '';
     mobileSelectedStudent = null;
     
+    // Получаем текущий выбор пользователя
     const allVotes = getAllVotes();
     const userVotes = allVotes[currentUser?.id] || {};
     const currentSelection = userVotes[nominationId];
     
+    // Фильтруем студентов
     let filteredStudents;
     if (nomination.gender) {
         filteredStudents = students.filter(student => student.gender === nomination.gender);
@@ -1130,15 +894,19 @@ function showMobileStudentList(nominationId) {
         filteredStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
     }
     
+    // Создаем элементы списка
     filteredStudents.forEach((student) => {
         const listItem = document.createElement('div');
         listItem.className = 'mobile-student-item';
+        listItem.dataset.studentName = student.name;
         
+        // Если студент уже выбран, отмечаем его
         if (currentSelection === student.name) {
             listItem.classList.add('selected');
             mobileSelectedStudent = student.name;
         }
         
+        // Фото студента
         const photoContainer = document.createElement('div');
         photoContainer.className = 'mobile-student-photo';
         
@@ -1146,12 +914,14 @@ function showMobileStudentList(nominationId) {
         img.alt = student.name;
         img.loading = 'lazy';
         
+        // Пробуем загрузить фото
         const imgLoader = new Image();
         imgLoader.src = student.photo;
         imgLoader.onload = function() {
             img.src = student.photo;
         };
         imgLoader.onerror = function() {
+            // Если фото не загрузилось, показываем инициалы
             const placeholder = document.createElement('div');
             placeholder.className = 'mobile-photo-placeholder';
             placeholder.textContent = getInitials(student.name);
@@ -1161,6 +931,7 @@ function showMobileStudentList(nominationId) {
         
         photoContainer.appendChild(img);
         
+        // Информация о студенте
         const infoDiv = document.createElement('div');
         infoDiv.className = 'mobile-student-info';
         
@@ -1175,56 +946,86 @@ function showMobileStudentList(nominationId) {
         infoDiv.appendChild(nameDiv);
         infoDiv.appendChild(genderDiv);
         
+        // Собираем элемент
         listItem.appendChild(photoContainer);
         listItem.appendChild(infoDiv);
         
-        listItem.addEventListener('click', function(e) {
-            e.stopPropagation();
-            
-            document.querySelectorAll('.mobile-student-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            this.classList.add('selected');
-            mobileSelectedStudent = student.name;
-            
-            selectBtn.disabled = false;
-            
-            if (isTouchDevice && navigator.vibrate) {
-                navigator.vibrate(30);
-            }
+        // Обработчики для выбора
+        listItem.addEventListener('click', function() {
+            selectMobileStudent(student.name, listItem);
         });
         
-        // Мобильный обработчик касания
         listItem.addEventListener('touchend', function(e) {
             e.preventDefault();
-            e.stopPropagation();
-            
-            document.querySelectorAll('.mobile-student-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            this.classList.add('selected');
-            mobileSelectedStudent = student.name;
-            
-            selectBtn.disabled = false;
-            
-            if (isTouchDevice && navigator.vibrate) {
-                navigator.vibrate(30);
-            }
-        }, { passive: false });
+            selectMobileStudent(student.name, listItem);
+        });
         
-        listContainer.appendChild(listItem);
+        container.appendChild(listItem);
     });
     
-    selectBtn.disabled = !currentSelection;
+    // Настраиваем кнопку подтверждения
+    selectBtn.disabled = !mobileSelectedStudent;
     
+    // Показываем меню
     overlay.classList.add('active');
     list.classList.add('active');
     
+    // Блокируем скролл страницы
     document.body.style.overflow = 'hidden';
 }
 
+// Выбираем студента в мобильном меню
+function selectMobileStudent(studentName, listItem) {
+    console.log('Mobile student selected:', studentName);
+    
+    const container = document.getElementById('mobileStudentsContainer');
+    const selectBtn = document.getElementById('mobileSelectBtn');
+    
+    if (!container || !selectBtn) return;
+    
+    // Снимаем выделение со всех элементов
+    container.querySelectorAll('.mobile-student-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Выделяем выбранный элемент
+    listItem.classList.add('selected');
+    mobileSelectedStudent = studentName;
+    
+    // Активируем кнопку подтверждения
+    selectBtn.disabled = false;
+    
+    // Вибрация (если поддерживается)
+    if (navigator.vibrate) {
+        navigator.vibrate(30);
+    }
+}
+
+// Подтверждаем выбор в мобильном меню
+function confirmMobileSelection() {
+    console.log('Confirming mobile selection...');
+    
+    if (!mobileSelectedStudent || !mobileCurrentNomination || !currentUser) {
+        showNotification('Ошибка при выборе студента', 'error');
+        return;
+    }
+    
+    console.log('Saving mobile vote for:', mobileCurrentNomination, '->', mobileSelectedStudent);
+    
+    // Сохраняем голос
+    saveVoteToFirebase(mobileCurrentNomination, mobileSelectedStudent);
+    
+    // Обновляем отображение
+    updateNominationDisplay(mobileCurrentNomination, mobileSelectedStudent);
+    
+    // Показываем уведомление
+    showNotification(`✓ Выбрали: ${mobileSelectedStudent}`, 'success');
+    
+    // Закрываем меню
+    closeMobileStudentList();
+}
+
+// Закрываем мобильное меню
 function closeMobileStudentList() {
     const overlay = document.getElementById('mobileStudentOverlay');
     const list = document.getElementById('mobileStudentList');
@@ -1232,41 +1033,121 @@ function closeMobileStudentList() {
     if (overlay) overlay.classList.remove('active');
     if (list) list.classList.remove('active');
     
+    // Восстанавливаем скролл страницы
     document.body.style.overflow = '';
     
+    // Сбрасываем переменные
     mobileSelectedStudent = null;
     mobileCurrentNomination = null;
 }
 
-function confirmMobileSelection() {
-    if (!mobileSelectedStudent || !mobileCurrentNomination || !currentUser) return;
+// ============================================
+// УВЕДОМЛЕНИЯ
+// ============================================
+
+function showNotification(message, type = 'info') {
+    // Удаляем старые уведомления
+    const oldNotifications = document.querySelectorAll('.notification');
+    oldNotifications.forEach(notif => notif.remove());
     
-    saveVoteToFirebase(mobileCurrentNomination, mobileSelectedStudent);
-    updateNominationDisplay(mobileCurrentNomination, mobileSelectedStudent);
+    // Создаем новое уведомление
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
     
-    showNotification(`Вы выбрали: ${mobileSelectedStudent}`, 'success');
+    // Стили
+    notification.style.cssText = `
+        position: fixed;
+        ${isMobile ? 'top: 20px; left: 20px; right: 20px;' : 'top: 30px; right: 30px;'}
+        padding: ${isMobile ? '15px' : '20px'};
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        z-index: 10000;
+        text-align: center;
+        animation: slideIn 0.3s ease;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        font-size: ${isMobile ? '14px' : '16px'};
+    `;
     
-    closeMobileStudentList();
+    // Цвета в зависимости от типа
+    if (type === 'error') {
+        notification.style.background = 'linear-gradient(135deg, #d32f2f, #b71c1c)';
+        notification.style.border = '1px solid #ff5252';
+    } else if (type === 'success') {
+        notification.style.background = 'linear-gradient(135deg, #388e3c, #1b5e20)';
+        notification.style.border = '1px solid #69f0ae';
+    } else {
+        notification.style.background = 'linear-gradient(135deg, #5e35b1, #4527a0)';
+        notification.style.border = '1px solid #a89bdc';
+    }
+    
+    // Добавляем на страницу
+    document.body.appendChild(notification);
+    
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
 }
 
+// Добавляем стили для анимаций уведомлений
+if (!document.querySelector('#notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            to {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ============================================
+// АДМИН-ПАНЕЛЬ
+// ============================================
+
+// Показываем модальное окно с паролем
 function showPasswordModal() {
     const modal = document.getElementById('passwordModal');
-    const passwordInput = document.getElementById('adminPassword');
-    
     if (modal) {
         modal.style.display = 'block';
+        
+        // Фокус на поле ввода
+        const passwordInput = document.getElementById('adminPassword');
         if (passwordInput) {
-            passwordInput.value = '';
             setTimeout(() => passwordInput.focus(), 100);
         }
     }
 }
 
+// Закрываем модальное окно с паролем
 function closePasswordModal() {
     const modal = document.getElementById('passwordModal');
     if (modal) modal.style.display = 'none';
 }
 
+// Проверяем пароль админа
 function checkAdminPassword() {
     const passwordInput = document.getElementById('adminPassword');
     if (!passwordInput) return;
@@ -1275,7 +1156,7 @@ function checkAdminPassword() {
     if (password === ADMIN_PASSWORD) {
         closePasswordModal();
         showAdminPanel();
-        showNotification('Доступ разрешен!', 'success');
+        showNotification('✓ Доступ разрешен!', 'success');
     } else {
         showNotification('Неверный пароль!', 'error');
         passwordInput.value = '';
@@ -1283,404 +1164,148 @@ function checkAdminPassword() {
     }
 }
 
+// Показываем админ-панель
 function showAdminPanel() {
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) adminPanel.style.display = 'block';
 }
 
+// Скрываем админ-панель
 function hideAdminPanel() {
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) adminPanel.style.display = 'none';
 }
 
-async function showLiveResults() {
-    const modal = document.getElementById('resultsModal');
-    const resultsGrid = document.getElementById('resultsGrid');
-    const resultsTitle = document.getElementById('resultsTitle');
+// ============================================
+// ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+// ============================================
+
+// Основная функция инициализации
+function initApp() {
+    console.log('Initializing app...');
     
-    if (!modal || !resultsGrid || !resultsTitle) return;
+    // Создаем снежинки и гирлянды
+    createSnowflakes();
+    createGarlands();
     
-    resultsTitle.textContent = 'РЕЗУЛЬТАТЫ ГОЛОСОВАНИЯ';
-    resultsGrid.innerHTML = '<div class="loading">Загрузка данных...</div>';
+    // Интервал для снежинок
+    setInterval(createSnowflakes, isMobile ? 2000 : 1200);
     
-    modal.style.display = 'block';
-    hideAdminPanel();
-    
-    try {
-        const votes = await getAllVotesFromFirebase();
-        const results = calculateResults(votes);
-        
-        let html = `
-            <div class="results-stats" style="text-align: center; margin-bottom: 25px; font-size: 1.2em;">
-                <strong>Всего голосов: ${Object.values(votes).reduce((acc, user) => acc + Object.values(user).length, 0)}</strong>
-            </div>
-        `;
-        
-        nominations.forEach(nomination => {
-            const nominationResults = results[nomination.id] || {};
-            const totalVotes = Object.values(nominationResults).reduce((sum, count) => sum + count, 0);
-            
-            html += `
-                <div class="result-item">
-                    <h4>${nomination.title}</h4>
-                    <div class="results-stats">Всего голосов: ${totalVotes}</div>
-                    <ul class="result-list">
-            `;
-            
-            if (totalVotes > 0) {
-                const sortedResults = Object.entries(nominationResults)
-                    .sort(([,a], [,b]) => b - a);
-                
-                sortedResults.forEach(([student, votes], index) => {
-                    const percentage = totalVotes > 0 ? (votes / totalVotes * 100).toFixed(1) : 0;
-                    html += `
-                        <li>
-                            <span class="student-result-name">${student}</span>
-                            <div class="result-details">
-                                <span style="margin-right: 12px; color: #f0f0ff; font-weight: 600;">${percentage}%</span>
-                                <span class="vote-count">${votes} гол.</span>
-                            </div>
-                        </li>
-                    `;
-                });
-            } else {
-                html += '<li class="no-votes">Голосов пока нет</li>';
-            }
-            
-            html += '</ul></div>';
-        });
-        
-        resultsGrid.innerHTML = html;
-        
-    } catch (error) {
-        resultsGrid.innerHTML = '<div class="error">Ошибка загрузки результатов</div>';
+    // Инициализируем мобильное меню
+    if (isMobile) {
+        initMobileMenu();
     }
-}
-
-async function showAllVoters() {
-    const modal = document.getElementById('resultsModal');
-    const resultsGrid = document.getElementById('resultsGrid');
-    const resultsTitle = document.getElementById('resultsTitle');
     
-    if (!modal || !resultsGrid || !resultsTitle) return;
-    
-    resultsTitle.textContent = 'ВСЕ ПРОГОЛОСОВАВШИЕ';
-    resultsGrid.innerHTML = '<div class="loading">Загрузка данных...</div>';
-    
-    modal.style.display = 'block';
-    hideAdminPanel();
-    
-    try {
-        const votes = await getDetailedVotesFromFirebase();
-        const voters = groupVotesByUser(votes);
-        
-        let html = `
-            <div class="results-stats" style="text-align: center; margin-bottom: 25px; font-size: 1.2em;">
-                <strong>Всего проголосовало: ${voters.length} человек</strong>
-            </div>
-        `;
-        
-        if (voters.length === 0) {
-            html += '<div class="no-votes" style="text-align: center;">Пока никто не проголосовал</div>';
-        } else {
-            voters.forEach((voter, index) => {
-                const shortName = isMobile 
-                    ? voter.userName.split(' ')[0] + ' ' + voter.userName.split(' ')[1]?.[0] + '.'
-                    : voter.userName;
-                
-                html += `
-                    <div class="result-item">
-                        <h4>${index + 1}. ${shortName}</h4>
-                        <div class="results-stats">
-                            Email: ${voter.userEmail}<br>
-                            Проголосовал в ${Object.keys(voter.votes).length} номинациях
-                        </div>
-                        <ul class="result-list">
-                `;
-                
-                Object.entries(voter.votes).forEach(([nominationId, studentName]) => {
-                    const nomination = nominations.find(n => n.id === nominationId);
-                    const shortNomination = nomination?.title.length > 30 
-                        ? nomination.title.substring(0, 30) + '...' 
-                        : nomination?.title || nominationId;
-                    
-                    html += `
-                        <li>
-                            <span class="student-result-name">${shortNomination}</span>
-                            <div class="result-details">
-                                <span style="color: #f0f0ff; font-weight: 500;">→ ${studentName}</span>
-                            </div>
-                        </li>
-                    `;
-                });
-                
-                html += '</ul></div>';
-            });
-        }
-        
-        resultsGrid.innerHTML = html;
-        
-    } catch (error) {
-        resultsGrid.innerHTML = '<div class="error">Ошибка загрузки данных</div>';
-    }
-}
-
-function closeResults() {
-    const modal = document.getElementById('resultsModal');
-    if (modal) modal.style.display = 'none';
-}
-
-async function downloadResultsImage() {
-    try {
-        showNotification('Генерация изображения...', 'info');
-        
-        const votes = await getAllVotesFromFirebase();
-        const results = calculateResults(votes);
-        
-        const tempDiv = document.createElement('div');
-        tempDiv.style.cssText = `
-            position: fixed;
-            top: -9999px;
-            left: -9999px;
-            width: 800px;
-            background: linear-gradient(135deg, #15132b, #0c0a1a);
-            color: #f0f0ff;
-            padding: 40px;
-            font-family: 'Inter', sans-serif;
-            border: 3px solid #5e35b1;
-            border-radius: 20px;
-        `;
-        
-        let html = `
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #f0f0ff; margin-bottom: 10px; font-size: 2.2em; font-weight: 700;">
-                    Антипремия "Так себе достижения"
-                </h1>
-                <div style="color: #a89bdc; font-size: 1.2em; margin-bottom: 20px;">
-                    Результаты голосования
-                </div>
-                <div style="background: linear-gradient(135deg, #5e35b1, #4527a0); 
-                            padding: 8px 20px; border-radius: 20px; display: inline-block; font-weight: 600;">
-                    Всего голосов: ${Object.values(votes).reduce((acc, user) => acc + Object.values(user).length, 0)}
-                </div>
-            </div>
-        `;
-        
-        nominations.forEach((nomination, index) => {
-            const nominationResults = results[nomination.id] || {};
-            const totalVotes = Object.values(nominationResults).reduce((sum, count) => sum + count, 0);
-            
-            html += `
-                <div style="margin-bottom: 25px; background: rgba(94, 53, 177, 0.1); 
-                           padding: 20px; border-radius: 15px; border-left: 4px solid #5e35b1;">
-                    <h3 style="color: #f0f0ff; margin-bottom: 15px; font-size: 1.3em; font-weight: 600;">
-                        ${index + 1}. ${nomination.title}
-                    </h3>
-            `;
-            
-            if (totalVotes > 0) {
-                const sortedResults = Object.entries(nominationResults)
-                    .sort(([,a], [,b]) => b - a);
-                
-                sortedResults.forEach(([student, votes], i) => {
-                    const percentage = totalVotes > 0 ? (votes / totalVotes * 100).toFixed(1) : 0;
-                    html += `
-                        <div style="display: flex; justify-content: space-between; align-items: center; 
-                                    padding: 12px 0; border-bottom: 1px solid rgba(168, 155, 220, 0.2);">
-                            <span style="color: #f0f0ff; font-size: 1.1em; font-weight: 500;">
-                                ${i + 1}. ${student}
-                            </span>
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <span style="color: #a89bdc; font-weight: 600;">${percentage}%</span>
-                                <span style="background: linear-gradient(135deg, #5e35b1, #4527a0); 
-                                           padding: 4px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9em;">
-                                    ${votes} гол.
-                                </span>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                html += '<div style="color: rgba(168, 155, 220, 0.7); text-align: center; padding: 20px;">Голосов пока нет</div>';
-            }
-            
-            html += '</div>';
-        });
-        
-        html += `
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; 
-                        border-top: 1px solid rgba(94, 53, 177, 0.3); 
-                        color: rgba(168, 155, 220, 0.7); font-size: 0.9em;">
-                Сгенерировано: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}
-            </div>
-        `;
-        
-        tempDiv.innerHTML = html;
-        document.body.appendChild(tempDiv);
-        
-        const canvas = await html2canvas(tempDiv, {
-            scale: 2,
-            backgroundColor: null,
-            useCORS: true,
-            logging: false
-        });
-        
-        const link = document.createElement('a');
-        link.download = `результаты_антипремии_${new Date().toLocaleDateString('ru-RU')}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        
-        document.body.removeChild(tempDiv);
-        
-        showNotification('Изображение скачано!', 'success');
-        
-    } catch (error) {
-        showNotification('Ошибка генерации изображения', 'error');
-    }
-}
-
-async function getAllVotesFromFirebase() {
-    try {
-        const snapshot = await db.collection('votes').get();
-        const votes = {};
-        snapshot.forEach(doc => {
-            const vote = doc.data();
-            if (!votes[vote.userId]) votes[vote.userId] = {};
-            votes[vote.userId][vote.nominationId] = vote.studentName;
-        });
-        return votes;
-    } catch (error) {
-        return getAllVotes();
-    }
-}
-
-async function getDetailedVotesFromFirebase() {
-    try {
-        const snapshot = await db.collection('votes').get();
-        const votes = [];
-        snapshot.forEach(doc => {
-            votes.push({
-                id: doc.id,
-                ...doc.data()
-            });
-        });
-        return votes;
-    } catch (error) {
-        return [];
-    }
-}
-
-function calculateResults(votes) {
-    const results = {};
-    
-    nominations.forEach(nomination => {
-        results[nomination.id] = {};
-    });
-    
-    Object.values(votes).forEach(userVotes => {
-        Object.entries(userVotes).forEach(([nominationId, studentName]) => {
-            if (studentName && results[nominationId]) {
-                if (!results[nominationId][studentName]) {
-                    results[nominationId][studentName] = 0;
-                }
-                results[nominationId][studentName]++;
-            }
-        });
-    });
-    
-    return results;
-}
-
-function groupVotesByUser(votes) {
-    const users = {};
-    
-    votes.forEach(vote => {
-        if (!users[vote.userId]) {
-            users[vote.userId] = {
-                userName: vote.userName,
-                userEmail: vote.userEmail,
-                userId: vote.userId,
-                votes: {}
-            };
-        }
-        users[vote.userId].votes[vote.nominationId] = vote.studentName;
-    });
-    
-    return Object.values(users).sort((a, b) => a.userName.localeCompare(b.userName));
-}
-
-async function resetVoting() {
-    if (confirm('ВНИМАНИЕ! Это действие сбросит ВСЕ данные голосования. Все голоса будут удалены без возможности восстановления. Продолжить?')) {
+    // Проверяем, авторизован ли пользователь
+    const savedUser = localStorage.getItem(CURRENT_USER_KEY);
+    if (savedUser) {
         try {
-            const votesSnapshot = await db.collection('votes').get();
-            
-            if (votesSnapshot.size > 0) {
-                const batch = db.batch();
-                votesSnapshot.docs.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
-                await batch.commit();
-            }
+            currentUser = JSON.parse(savedUser);
+            showVotingSection();
+        } catch (e) {
+            localStorage.removeItem(CURRENT_USER_KEY);
+            showRegistrationSection();
+        }
+    } else {
+        showRegistrationSection();
+    }
+    
+    // Настраиваем обработчики для полей ввода
+    setupInputHandlers();
+    
+    // Добавляем обработчики для iOS
+    if (isIOS) {
+        setupIOSHandlers();
+    }
+}
 
-            localStorage.removeItem(ALL_VOTES_KEY);
-            localStorage.removeItem(ALL_USERS_KEY);
+// Показываем секцию регистрации
+function showRegistrationSection() {
+    const regSection = document.getElementById('registrationSection');
+    const votingSection = document.getElementById('votingSection');
+    
+    if (regSection) regSection.style.display = 'block';
+    if (votingSection) votingSection.style.display = 'none';
+}
+
+// Настраиваем обработчики для полей ввода
+function setupInputHandlers() {
+    const userNameInput = document.getElementById('userName');
+    const userEmailInput = document.getElementById('userEmail');
+    
+    if (userNameInput && userEmailInput) {
+        // Отправка формы по Enter
+        userNameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') registerUser();
+        });
+        
+        userEmailInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') registerUser();
+        });
+        
+        // Фокус на мобильных
+        if (isMobile) {
+            userNameInput.addEventListener('focus', function() {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
             
-            showNotification('Данные голосования сброшены!', 'success');
-            
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-            
-        } catch (error) {
-            showNotification('Ошибка сброса данных', 'error');
+            userEmailInput.addEventListener('focus', function() {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
         }
     }
 }
 
-// Исправление для мобильных устройств
-document.addEventListener('DOMContentLoaded', function() {
-    if (isTouchDevice) {
-        // Предотвращаем зум при двойном тапе
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(event) {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, { passive: false });
-        
-        // Улучшаем скролл на iOS
-        document.body.style.overflowY = 'scroll';
-        document.body.style.webkitOverflowScrolling = 'touch';
-        
-        // Исправление для iOS Safari
-        if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-            // Предотвращаем выделение текста при долгом нажатии
-            document.addEventListener('touchstart', function(e) {
-                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-        }
-    }
+// Настраиваем обработчики для iOS
+function setupIOSHandlers() {
+    // Исправление 100vh для iOS
+    const setVH = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
     
-    // Инициализация приложения
-    initApp();
-});
+    setVH();
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', setVH);
+    
+    // Предотвращение зума при фокусе
+    document.addEventListener('focusin', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        }
+    });
+}
 
+// ============================================
+// ЗАГРУЗКА ПРИЛОЖЕНИЯ
+// ============================================
+
+// Загружаем приложение когда DOM готов
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
+
+// Экспортируем функции в глобальную область видимости
 window.registerUser = registerUser;
 window.openStudentSelection = openStudentSelection;
-window.downloadResultsImage = downloadResultsImage;
+window.confirmSelection = confirmSelection;
 window.showPasswordModal = showPasswordModal;
 window.closePasswordModal = closePasswordModal;
 window.checkAdminPassword = checkAdminPassword;
 window.showAdminPanel = showAdminPanel;
 window.hideAdminPanel = hideAdminPanel;
-window.showLiveResults = showLiveResults;
-window.showAllVoters = showAllVoters;
-window.closeResults = closeResults;
-window.resetVoting = resetVoting;
-window.confirmSelection = confirmSelection;
 window.closeMobileStudentList = closeMobileStudentList;
 window.confirmMobileSelection = confirmMobileSelection;
+
+// Для отладки
+console.log('App initialized successfully');
+console.log('Mobile device:', isMobile);
+console.log('iOS device:', isIOS);

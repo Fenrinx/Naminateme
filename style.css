@@ -1597,3 +1597,110 @@ button:focus:not(:active)::after {
         opacity: 0;
     }
 }
+/* ============================================
+   ИСПРАВЛЕНИЯ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ
+   ============================================ */
+
+/* Отключаем выделение при касании */
+* {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Явные стили для кнопок на мобильных */
+@media (max-width: 768px) {
+    /* Увеличиваем размер тач-целей */
+    button, 
+    .student-card,
+    .mobile-student-item,
+    .nomination-card,
+    .close,
+    .mobile-close-btn {
+        min-height: 44px;
+        min-width: 44px;
+        cursor: pointer !important;
+    }
+    
+    /* Активное состояние для всех кнопок */
+    button:active,
+    .student-card:active,
+    .mobile-student-item:active,
+    .nomination-card:active {
+        transform: scale(0.95) !important;
+        opacity: 0.9 !important;
+        transition: transform 0.1s ease, opacity 0.1s ease !important;
+    }
+    
+    /* Яркая обратная связь при нажатии */
+    .login-button:active,
+    .vote-button:active,
+    .confirm-button:active,
+    .admin-button:active,
+    .mobile-select-btn:active {
+        background: linear-gradient(135deg, #311b92, #4527a0) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+    }
+    
+    /* Фикс для модальных окон */
+    .modal {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        z-index: 9999 !important;
+    }
+    
+    .modal-content {
+        margin: 10px auto !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        position: relative !important;
+    }
+    
+    /* Фикс для iOS */
+    input, textarea {
+        font-size: 16px !important;
+    }
+    
+    /* Убираем стандартное поведение для всех кликабельных элементов */
+    button, a, [onclick] {
+        -webkit-tap-highlight-color: rgba(94, 53, 177, 0.5) !important;
+        tap-highlight-color: rgba(94, 53, 177, 0.5) !important;
+    }
+}
+
+/* Анимация нажатия */
+@keyframes buttonPress {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.96); }
+    100% { transform: scale(1); }
+}
+
+.button-pressed {
+    animation: buttonPress 0.2s ease;
+}
+
+/* Для старых Android */
+@media (hover: none) and (pointer: coarse) {
+    .login-button:hover,
+    .vote-button:hover,
+    .confirm-button:hover,
+    .admin-button:hover {
+        transform: none !important;
+    }
+    
+    .nomination-card:hover,
+    .student-card:hover {
+        transform: none !important;
+    }
+}
