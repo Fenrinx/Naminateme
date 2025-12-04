@@ -1,3 +1,5 @@
+[file name]: style.css
+[file content begin]
 * {
     margin: 0;
     padding: 0;
@@ -1002,20 +1004,44 @@ body {
     transform: rotate(90deg);
 }
 
-/* ИСПРАВЛЕНИЕ СКРОЛЛА ДЛЯ МОБИЛЬНЫХ */
 .mobile-students-container {
-    max-height: 60vh;
+    max-height: calc(70vh - 150px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     margin-bottom: 15px;
-    /* Скрываем скроллбар для красоты */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE и Edge */
+    /* Стили для скроллбара */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(94, 53, 177, 0.6) rgba(36, 30, 70, 0.3);
 }
 
-/* Скрываем скроллбар в Chrome/Safari */
+/* Стили для WebKit браузеров (Chrome, Safari) */
 .mobile-students-container::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+    background: rgba(36, 30, 70, 0.3);
+    border-radius: 4px;
+}
+
+.mobile-students-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(94, 53, 177, 0.6), rgba(126, 87, 194, 0.8));
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(94, 53, 177, 0.4);
+}
+
+.mobile-students-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(94, 53, 177, 0.8), rgba(126, 87, 194, 1));
+}
+
+.mobile-students-container::-webkit-scrollbar-track {
+    background: rgba(36, 30, 70, 0.3);
+    border-radius: 4px;
+}
+
+/* Стили для Firefox */
+@supports (scrollbar-color: auto) {
+    .mobile-students-container {
+        scrollbar-color: rgba(94, 53, 177, 0.6) rgba(36, 30, 70, 0.3);
+        scrollbar-width: thin;
+    }
 }
 
 .mobile-student-item {
@@ -1029,9 +1055,6 @@ body {
     transition: all 0.2s ease;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    /* Улучшаем производительность */
-    transform: translateZ(0);
-    backface-visibility: hidden;
 }
 
 .mobile-student-item:active {
@@ -1277,18 +1300,8 @@ body {
         height: 8px;
     }
     
-    /* ОПТИМИЗАЦИЯ АНИМАЦИЙ ДЛЯ МОБИЛЬНЫХ */
-    .nomination-card {
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                   box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
     .nomination-card:hover {
-        transform: translateY(-3px);
-    }
-    
-    .student-card {
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateY(-4px);
     }
     
     .student-card:hover {
@@ -1328,7 +1341,28 @@ body {
     }
     
     .mobile-students-container {
-        max-height: 55vh;
+        max-height: calc(65vh - 150px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 15px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(94, 53, 177, 0.6) rgba(36, 30, 70, 0.3);
+    }
+    
+    .mobile-students-container::-webkit-scrollbar {
+        width: 6px;
+        background: rgba(36, 30, 70, 0.3);
+        border-radius: 3px;
+    }
+    
+    .mobile-students-container::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, rgba(94, 53, 177, 0.6), rgba(126, 87, 194, 0.8));
+        border-radius: 3px;
+    }
+    
+    .mobile-students-container::-webkit-scrollbar-track {
+        background: rgba(36, 30, 70, 0.3);
+        border-radius: 3px;
     }
     
     @media (hover: none) and (pointer: coarse) {
@@ -1466,6 +1500,16 @@ body {
         padding: 16px;
         font-size: 1.05em;
     }
+    
+    .mobile-students-container {
+        max-height: calc(60vh - 150px);
+        scrollbar-width: thin;
+        scrollbar-color: rgba(94, 53, 177, 0.6) rgba(36, 30, 70, 0.3);
+    }
+    
+    .mobile-students-container::-webkit-scrollbar {
+        width: 4px;
+    }
 }
 
 @supports (-webkit-touch-callout: none) {
@@ -1479,32 +1523,30 @@ body {
     
     .mobile-students-container {
         -webkit-overflow-scrolling: touch;
-    }
-}
-
-/* ДОПОЛНИТЕЛЬНЫЕ ИСПРАВЛЕНИЯ ДЛЯ ПЛАВНОСТИ */
-@media (max-width: 768px) {
-    /* Улучшаем производительность анимаций */
-    .nomination-card,
-    .student-card,
-    .mobile-student-item,
-    .login-button,
-    .vote-button {
-        will-change: transform;
-        transform: translateZ(0);
-        backface-visibility: hidden;
-        perspective: 1000;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(94, 53, 177, 0.6) rgba(36, 30, 70, 0.3);
     }
     
-    /* Плавные переходы */
-    * {
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-    
-    /* Улучшаем скролл */
-    .mobile-students-container {
-        overflow-y: scroll !important;
-        -webkit-overflow-scrolling: touch !important;
-        scroll-behavior: smooth;
+    /* Для iOS Safari */
+    @supports (-webkit-touch-callout: none) and (not (scrollbar-width: thin)) {
+        .mobile-students-container {
+            padding-right: 10px; /* Добавляем место для скроллбара */
+        }
+        
+        .mobile-students-container::-webkit-scrollbar {
+            -webkit-appearance: none;
+            width: 6px;
+        }
+        
+        .mobile-students-container::-webkit-scrollbar-thumb {
+            background-color: rgba(94, 53, 177, 0.6);
+            border-radius: 3px;
+        }
+        
+        .mobile-students-container::-webkit-scrollbar-track {
+            background-color: rgba(36, 30, 70, 0.3);
+            border-radius: 3px;
+        }
     }
 }
+[file content end]

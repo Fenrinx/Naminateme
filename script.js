@@ -118,10 +118,6 @@ const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 let mobileSelectedStudent = null;
 let mobileCurrentNomination = null;
 
-// Переменные для отслеживания скролла
-let touchStartY = 0;
-let isScrolling = false;
-
 function generateBrowserFingerprint() {
     let fingerprint = '';
     fingerprint += navigator.userAgent;
@@ -439,52 +435,6 @@ function initApp() {
     }
     
     initMobileMenu();
-    
-    // Настраиваем обработчики для мобильных
-    setTimeout(() => {
-        setupMobileTouchHandlers();
-    }, 1000);
-    
-    // Оптимизация для iOS
-    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-        document.body.style.cursor = 'pointer';
-    }
-}
-
-function setupMobileTouchHandlers() {
-    if (!isMobile) return;
-    
-    // Обработчик для кнопки регистрации
-    const loginButton = document.querySelector('.login-button');
-    if (loginButton) {
-        loginButton.addEventListener('touchend', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            registerUser();
-        }, { passive: false });
-    }
-    
-    // Обработчики для кнопок голосования
-    document.addEventListener('touchend', function(e) {
-        if (isScrolling) {
-            isScrolling = false;
-            return;
-        }
-        
-        const voteButton = e.target.closest('.vote-button');
-        if (voteButton) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const onclickAttr = voteButton.getAttribute('onclick');
-            if (onclickAttr) {
-                const match = onclickAttr.match(/'([^']+)'/);
-                if (match && match[1]) {
-                    openStudentSelection(match[1]);
-                }
-            }
-        }
-    }, { passive: false });
 }
 
 function initMobileMenu() {
@@ -952,7 +902,6 @@ if (!document.querySelector('#notification-styles')) {
     document.head.appendChild(style);
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ МОБИЛЬНЫХ
 function showMobileStudentList(nominationId) {
     const nomination = nominations.find(n => n.id === nominationId);
     if (!nomination) return;
@@ -969,7 +918,6 @@ function showMobileStudentList(nominationId) {
     
     listContainer.innerHTML = '';
     mobileSelectedStudent = null;
-    isScrolling = false;
     
     const allVotes = getAllVotes();
     const userVotes = allVotes[currentUser?.id] || {};
@@ -1030,35 +978,7 @@ function showMobileStudentList(nominationId) {
         listItem.appendChild(photoContainer);
         listItem.appendChild(infoDiv);
         
-        // Обработчики для элемента списка
-        let touchStartY = 0;
-        let touchStartTime = 0;
-        
-        listItem.addEventListener('touchstart', function(e) {
-            touchStartY = e.touches[0].clientY;
-            touchStartTime = Date.now();
-        }, { passive: true });
-        
-        listItem.addEventListener('touchmove', function(e) {
-            const currentY = e.touches[0].clientY;
-            const deltaY = Math.abs(currentY - touchStartY);
-            
-            // Если движение больше 5px - считаем это скроллом
-            if (deltaY > 5) {
-                isScrolling = true;
-            }
-        }, { passive: true });
-        
-        listItem.addEventListener('touchend', function(e) {
-            const touchEndTime = Date.now();
-            const touchDuration = touchEndTime - touchStartTime;
-            
-            // Если это был скролл или очень короткое касание - игнорируем
-            if (isScrolling || touchDuration < 100) {
-                return;
-            }
-            
-            e.preventDefault();
+        listItem.addEventListener('click', function(e) {
             e.stopPropagation();
             
             document.querySelectorAll('.mobile-student-item').forEach(item => {
@@ -1073,34 +993,17 @@ function showMobileStudentList(nominationId) {
             if (isTouchDevice && navigator.vibrate) {
                 navigator.vibrate(30);
             }
-        }, { passive: false });
+        });
         
         listContainer.appendChild(listItem);
     });
     
     selectBtn.disabled = !currentSelection;
-    
-    // Обработчики для скролла контейнера
-    listContainer.addEventListener('touchstart', function(e) {
-        touchStartY = e.touches[0].clientY;
-        isScrolling = false;
-    }, { passive: true });
-    
-    listContainer.addEventListener('touchmove', function(e) {
-        const currentY = e.touches[0].clientY;
-        const deltaY = Math.abs(currentY - touchStartY);
-        
-        if (deltaY > 5) {
-            isScrolling = true;
+    selectBtn.onclick = function() {
+        if (mobileSelectedStudent && mobileCurrentNomination) {
+            confirmMobileSelection();
         }
-    }, { passive: true });
-    
-    listContainer.addEventListener('touchend', function() {
-        // Через короткое время сбрасываем флаг скролла
-        setTimeout(() => {
-            isScrolling = false;
-        }, 100);
-    }, { passive: true });
+    };
     
     overlay.classList.add('active');
     list.classList.add('active');
@@ -1119,7 +1022,6 @@ function closeMobileStudentList() {
     
     mobileSelectedStudent = null;
     mobileCurrentNomination = null;
-    isScrolling = false;
 }
 
 function confirmMobileSelection() {
