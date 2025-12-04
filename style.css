@@ -1155,6 +1155,7 @@ body {
         background: #0c0a1a;
         overflow-x: hidden;
         -webkit-text-size-adjust: 100%;
+        touch-action: pan-y;
     }
     
     .container {
@@ -1164,6 +1165,7 @@ body {
         border-width: 1px;
         overflow: hidden;
         -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
     }
     
     .logo-header {
@@ -1196,6 +1198,9 @@ body {
         margin-top: 15px;
         width: 100%;
         text-align: center;
+        padding: 14px;
+        min-height: 50px;
+        font-size: 1em;
     }
     
     .auth-container {
@@ -1219,11 +1224,30 @@ body {
         padding: 22px;
         min-height: auto;
         border-left-width: 4px;
+        margin-bottom: 20px;
     }
     
     .nomination-card h3 {
         font-size: 1.3em;
         word-break: break-word;
+        margin-bottom: 15px;
+    }
+    
+    .nomination-card p {
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+    
+    .vote-button {
+        padding: 16px 20px;
+        min-height: 60px;
+        margin-top: 10px;
+        font-size: 1em;
+    }
+    
+    .selected-student {
+        margin: 15px 0;
+        padding: 14px 18px;
     }
     
     .modal-content {
@@ -1234,6 +1258,7 @@ body {
         border-radius: 18px;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
     }
     
     .students-grid {
@@ -1330,6 +1355,7 @@ body {
     .modal {
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
     }
     
     #studentModal {
@@ -1338,6 +1364,7 @@ body {
     
     .mobile-student-list {
         padding-bottom: max(20px, env(safe-area-inset-bottom));
+        touch-action: pan-y;
     }
     
     .mobile-students-container {
@@ -1347,6 +1374,7 @@ body {
         margin-bottom: 15px;
         scrollbar-width: thin;
         scrollbar-color: rgba(94, 53, 177, 0.6) rgba(36, 30, 70, 0.3);
+        touch-action: pan-y;
     }
     
     .mobile-students-container::-webkit-scrollbar {
@@ -1363,6 +1391,43 @@ body {
     .mobile-students-container::-webkit-scrollbar-track {
         background: rgba(36, 30, 70, 0.3);
         border-radius: 3px;
+    }
+    
+    .mobile-select-btn {
+        min-height: 60px;
+        font-size: 1.1em;
+        margin-top: 15px;
+    }
+    
+    /* Исправления для кликабельности кнопок */
+    button, .mobile-student-item, .student-card {
+        -webkit-tap-highlight-color: rgba(94, 53, 177, 0.3);
+        cursor: pointer;
+    }
+    
+    button:active, .mobile-student-item:active, .student-card:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+    
+    /* Увеличиваем размер тапа */
+    .vote-button, .login-button, .confirm-button, .admin-button {
+        min-height: 60px;
+        padding: 16px 20px;
+        font-size: 1.1em;
+    }
+    
+    /* Убираем перекрытие контента */
+    .mobile-student-list .mobile-select-btn {
+        z-index: 1002;
+        position: sticky;
+        bottom: 0;
+        background: linear-gradient(135deg, #5e35b1, #4527a0);
+        margin-top: 15px;
+    }
+    
+    .mobile-students-container {
+        padding-bottom: 80px; /* Место для кнопки */
     }
     
     @media (hover: none) and (pointer: coarse) {
@@ -1396,16 +1461,27 @@ body {
         .mobile-student-item:hover {
             transform: none;
         }
+        
+        /* Улучшаем отзывчивость тапов */
+        button, .mobile-student-item {
+            touch-action: manipulation;
+        }
     }
 }
 
 @media (max-width: 480px) {
+    body {
+        padding: 5px;
+        font-size: 14px;
+    }
+    
     .main-title {
         font-size: 1.7em;
     }
     
     .section-title {
         font-size: 1.4em;
+        margin-bottom: 25px;
     }
     
     .students-grid {
@@ -1424,20 +1500,24 @@ body {
     }
     
     .nomination-card {
-        padding: 20px;
+        padding: 18px;
+        margin-bottom: 15px;
     }
     
     .nomination-card h3 {
         font-size: 1.2em;
+        margin-bottom: 12px;
     }
     
     .nomination-card p {
         font-size: 0.95em;
+        margin-bottom: 18px;
     }
     
     .login-button, .vote-button, .confirm-button, .admin-button {
         padding: 16px 20px;
-        min-height: 54px;
+        min-height: 56px;
+        font-size: 1em;
     }
     
     .gold-subtitle {
@@ -1465,7 +1545,7 @@ body {
     }
     
     body {
-        -webkit-tap-highlight-color: rgba(0,0,0,0);
+        -webkit-tap-highlight-color: rgba(94, 53, 177, 0.1);
     }
     
     * {
@@ -1480,12 +1560,14 @@ body {
     
     .mobile-student-item {
         padding: 12px;
+        margin-bottom: 8px;
     }
     
     .mobile-student-photo {
         width: 50px;
         height: 50px;
         margin-right: 12px;
+        border-radius: 8px;
     }
     
     .mobile-student-name {
@@ -1499,16 +1581,80 @@ body {
     .mobile-select-btn {
         padding: 16px;
         font-size: 1.05em;
+        min-height: 56px;
     }
     
     .mobile-students-container {
         max-height: calc(60vh - 150px);
         scrollbar-width: thin;
         scrollbar-color: rgba(94, 53, 177, 0.6) rgba(36, 30, 70, 0.3);
+        padding-bottom: 70px; /* Место для кнопки */
     }
     
     .mobile-students-container::-webkit-scrollbar {
         width: 4px;
+    }
+    
+    /* Улучшаем кликабельность на маленьких экранах */
+    .vote-button, .login-button {
+        min-height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .button-text {
+        font-size: 1em;
+    }
+    
+    /* Убираем возможные перекрытия */
+    .nomination-card {
+        position: relative;
+        z-index: 1;
+    }
+}
+
+/* Стили для очень маленьких экранов */
+@media (max-width: 360px) {
+    body {
+        padding: 3px;
+        font-size: 13px;
+    }
+    
+    .container {
+        border-radius: 12px;
+    }
+    
+    .main-title {
+        font-size: 1.5em;
+    }
+    
+    .section-title {
+        font-size: 1.2em;
+    }
+    
+    .nomination-card {
+        padding: 15px;
+    }
+    
+    .vote-button {
+        min-height: 52px;
+        padding: 14px 16px;
+        font-size: 0.95em;
+    }
+    
+    .mobile-student-item {
+        padding: 10px;
+    }
+    
+    .mobile-student-photo {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .mobile-select-btn {
+        min-height: 52px;
+        padding: 14px;
     }
 }
 
@@ -1519,6 +1665,7 @@ body {
     
     body {
         overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
     }
     
     .mobile-students-container {
@@ -1548,5 +1695,40 @@ body {
             border-radius: 3px;
         }
     }
+    
+    /* Исправление для кнопок на iOS */
+    button {
+        cursor: pointer;
+        -webkit-appearance: none;
+        -webkit-tap-highlight-color: rgba(94, 53, 177, 0.3);
+    }
+    
+    /* Предотвращаем масштабирование при двойном тапе */
+    button, input, select, textarea {
+        font-size: 16px; /* Предотвращает масштабирование в iOS */
+    }
+}
+
+/* Дополнительные исправления для кликабельности */
+html {
+    -webkit-text-size-adjust: 100%; /* Предотвращает изменение размера текста на iOS */
+}
+
+/* Убедимся, что все кликабельные элементы легко нажимаются */
+button, .mobile-student-item, .student-card, .mobile-select-btn, .mobile-close-btn {
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+/* Улучшаем видимость активного состояния */
+button:active, .mobile-student-item:active {
+    opacity: 0.8;
+}
+
+/* Предотвращаем выделение текста при тапе */
+.nomination-card, .student-card, .mobile-student-item {
+    user-select: none;
+    -webkit-user-select: none;
 }
 [file content end]
