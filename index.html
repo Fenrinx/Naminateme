@@ -14,7 +14,7 @@
             <div class="logo-header">
                 <div class="award-badge">
                     <div class="badge-icon"></div>
-                    <div class="badge-text">Антипремия 2025</div>
+                    <div class="badge-text">Антипремия 2024</div>
                 </div>
                 <h1 class="main-title">"Так себе достижения"</h1>
                 <p class="subtitle">Голосование за самые незаметные подвиги в учебном процессе</p>
@@ -101,20 +101,27 @@
         </div>
     </div>
 
+    <!-- УПРОЩЕННОЕ ОКНО ГОЛОСОВАНИЯ - 1 КНОПКА -->
     <div id="studentModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" onclick="closeStudentModal()">&times;</span>
             <h2 class="modal-title" id="modalTitle">Выберите студента</h2>
-            <div class="students-grid" id="studentsGrid"></div>
-            <button id="confirmSelection" class="confirm-button" onclick="confirmSelection()" disabled>
-                <span class="button-text">Подтвердить выбор</span>
-                <span class="button-arrow"></span>
-            </button>
+            <div class="students-list-container">
+                <div class="desktop-students-grid" id="desktopStudentsGrid"></div>
+                <div class="mobile-students-list" id="mobileStudentsList"></div>
+            </div>
+            <!-- ТОЛЬКО ОДНА КНОПКА - ПОДТВЕРДИТЬ ВЫБОР -->
+            <div class="controls-container">
+                <button id="confirmBtn" class="confirm-button" onclick="confirmSelection()" disabled>
+                    <span class="button-text">Подтвердить выбор</span>
+                    <span class="button-arrow"></span>
+                </button>
+            </div>
         </div>
     </div>
 
     <div id="passwordModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content admin-modal">
             <span class="close" onclick="closePasswordModal()">&times;</span>
             <h2 class="modal-title">Админ-доступ</h2>
             <div class="form-group">

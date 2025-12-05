@@ -115,8 +115,11 @@ const BROWSER_FINGERPRINT_KEY = "antipremia_isp_2024_browser_fingerprint";
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-let mobileSelectedStudent = null;
-let mobileCurrentNomination = null;
+let selectedStudentName = null;
+let selectedElement = null;
+
+// Добавляем флаг для управления модальным окном
+let isModalOpen = false;
 
 function generateBrowserFingerprint() {
     let fingerprint = '';
@@ -318,6 +321,8 @@ function validateForm() {
 }
 
 async function loadStudentPhotos() {
+    console.log('Начинаю загрузку фотографий студентов...');
+    
     const loadPromises = students.map(student => {
         return new Promise((resolve) => {
             const img = new Image();
@@ -333,6 +338,7 @@ async function loadStudentPhotos() {
             
             function tryNextPath() {
                 if (currentTry >= tryPaths.length) {
+                    console.log('Не удалось загрузить фото для: ' + student.name);
                     student.photoLoaded = false;
                     resolve(null);
                     return;
@@ -342,6 +348,7 @@ async function loadStudentPhotos() {
                 currentTry++;
                 
                 img.onload = function() {
+                    console.log('Фото загружено: ' + student.name);
                     student.photo = img.src;
                     student.photoLoaded = true;
                     resolve(img);
@@ -355,6 +362,7 @@ async function loadStudentPhotos() {
     });
     
     await Promise.allSettled(loadPromises);
+    console.log('Загрузка фотографий завершена');
 }
 
 function initApp() {
@@ -426,43 +434,27 @@ function initApp() {
         showRegistrationSection();
     }
     
-    loadStudentPhotos().catch(error => {});
+    loadStudentPhotos().catch(error => {
+        console.log('Ошибка при загрузке фото: ', error);
+    });
     
+    // Улучшаем обработку касаний для мобильных устройств
     if (isTouchDevice) {
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
+        document.addEventListener('touchstart', function(e) {
+            // Разрешаем тач-события для модального окна
+            if (isModalOpen && e.target.closest('.modal-content')) {
+                return;
+            }
+        }, { passive: true });
+        
+        // Убираем блокировку масштабирования на мобильных
+        document.addEventListener('touchmove', function(e) {
+            // Разрешаем скролл в модальном окне
+            if (isModalOpen && e.target.closest('.modal-content')) {
+                return;
+            }
+        }, { passive: true });
     }
-    
-    initMobileMenu();
-}
-
-function initMobileMenu() {
-    const overlay = document.createElement('div');
-    overlay.id = 'mobileStudentOverlay';
-    overlay.className = 'mobile-student-overlay';
-    overlay.onclick = closeMobileStudentList;
-    
-    const mobileMenu = document.createElement('div');
-    mobileMenu.id = 'mobileStudentList';
-    mobileMenu.className = 'mobile-student-list';
-    mobileMenu.onclick = function(e) {
-        e.stopPropagation();
-    };
-    
-    mobileMenu.innerHTML = `
-        <div class="mobile-student-header">
-            <h3 class="mobile-student-title" id="mobileStudentTitle">Выберите студента</h3>
-            <button class="mobile-close-btn" onclick="closeMobileStudentList()">×</button>
-        </div>
-        <div class="mobile-students-container" id="mobileStudentsContainer"></div>
-        <button id="mobileSelectBtn" class="mobile-select-btn" disabled onclick="confirmMobileSelection()">
-            Подтвердить выбор
-        </button>
-    `;
-    
-    document.body.appendChild(overlay);
-    document.body.appendChild(mobileMenu);
 }
 
 function showRegistrationSection() {
@@ -479,7 +471,6 @@ function showVotingSection() {
     if (votingSection) votingSection.style.display = 'block';
     
     renderNominations();
-    setupModal();
     
     if (isMobile) {
         setTimeout(() => {
@@ -565,36 +556,6 @@ function renderNominations() {
         const card = createNominationCard(nomination);
         otherContainer.appendChild(card);
     });
-    
-    setTimeout(() => {
-        alignButtonsHeight();
-    }, 100);
-}
-
-function alignButtonsHeight() {
-    const cards = document.querySelectorAll('.nomination-card');
-    let maxButtonHeight = 0;
-    
-    cards.forEach(card => {
-        const button = card.querySelector('.vote-button');
-        if (button) {
-            button.style.height = 'auto';
-            const height = button.offsetHeight;
-            if (height > maxButtonHeight) {
-                maxButtonHeight = height;
-            }
-        }
-    });
-    
-    cards.forEach(card => {
-        const button = card.querySelector('.vote-button');
-        if (button) {
-            button.style.height = maxButtonHeight + 'px';
-            button.style.display = 'flex';
-            button.style.alignItems = 'center';
-            button.style.justifyContent = 'center';
-        }
-    });
 }
 
 function createNominationCard(nomination) {
@@ -634,45 +595,24 @@ function createNominationCard(nomination) {
     return card;
 }
 
-function setupModal() {
-    const modal = document.getElementById('studentModal');
-    const closeBtn = document.querySelector('#studentModal .close');
-
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            if (modal) modal.style.display = 'none';
-            currentNomination = null;
-        };
-    }
-
-    window.onclick = (event) => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-            currentNomination = null;
-        }
-    };
-}
-
 function openStudentSelection(nominationId) {
     currentNomination = nominationId;
-    
-    if (isMobile) {
-        mobileCurrentNomination = nominationId;
-        showMobileStudentList(nominationId);
-        return;
-    }
+    selectedStudentName = null;
+    selectedElement = null;
     
     const modal = document.getElementById('studentModal');
     const modalTitle = document.getElementById('modalTitle');
-    const studentsGrid = document.getElementById('studentsGrid');
-    const confirmBtn = document.getElementById('confirmSelection');
-
-    if (!modal || !modalTitle || !studentsGrid || !confirmBtn) return;
+    const desktopGrid = document.getElementById('desktopStudentsGrid');
+    const mobileList = document.getElementById('mobileStudentsList');
+    const confirmBtn = document.getElementById('confirmBtn');
+    
+    if (!modal || !modalTitle || !confirmBtn) return;
 
     const nomination = nominations.find(n => n.id === nominationId);
     if (nomination) modalTitle.textContent = nomination.title;
     
-    studentsGrid.innerHTML = '';
+    desktopGrid.innerHTML = '';
+    mobileList.innerHTML = '';
 
     const allVotes = getAllVotes();
     const userVotes = allVotes[currentUser?.id] || {};
@@ -685,82 +625,54 @@ function openStudentSelection(nominationId) {
         filteredStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    const columns = 4;
-    studentsGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-
     filteredStudents.forEach((student) => {
-        const studentCard = document.createElement('div');
-        studentCard.className = 'student-card';
+        // Desktop version
+        const desktopCard = document.createElement('div');
+        desktopCard.className = 'student-card';
         
-        if (currentSelection === student.name) studentCard.classList.add('selected');
+        if (currentSelection === student.name) {
+            desktopCard.classList.add('selected');
+            selectedStudentName = student.name;
+            selectedElement = desktopCard;
+        }
         
         const photoContainer = document.createElement('div');
         photoContainer.className = 'student-photo';
         
         const img = document.createElement('img');
+        img.alt = student.name;
+        img.loading = 'lazy';
         
-        const tryImageLoad = (src, attempts = 3) => {
+        const tryImageLoad = (src) => {
             return new Promise((resolve) => {
-                let attempt = 0;
+                img.onload = () => {
+                    resolve(true);
+                };
                 
-                function tryLoad() {
-                    attempt++;
-                    if (attempt > attempts) {
-                        resolve(false);
-                        return;
-                    }
-                    
-                    img.src = src;
-                    img.alt = student.name;
-                    img.loading = 'lazy';
-                    
-                    img.onload = () => {
-                        resolve(true);
-                    };
-                    
-                    img.onerror = () => {
-                        const altPaths = [
-                            src,
-                            src.startsWith('photos/') ? src : `photos/${src}`,
-                            src.startsWith('./photos/') ? src : `./photos/${src}`,
-                            'https://via.placeholder.com/140x140/5e35b1/ffffff?text=' + encodeURIComponent(student.name.substring(0, 2))
-                        ];
-                        
-                        if (attempt < altPaths.length) {
-                            setTimeout(() => tryLoad(altPaths[attempt]), 100);
-                        } else {
-                            resolve(false);
-                        }
-                    };
-                }
+                img.onerror = () => {
+                    img.style.display = 'none';
+                    const initials = document.createElement('div');
+                    initials.className = 'student-initials';
+                    initials.textContent = getInitials(student.name);
+                    initials.style.cssText = `
+                        color: white;
+                        font-size: 2em;
+                        font-weight: bold;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 100%;
+                        height: 100%;
+                    `;
+                    photoContainer.appendChild(initials);
+                    resolve(false);
+                };
                 
-                tryLoad();
+                img.src = src;
             });
         };
         
-        tryImageLoad(student.photo).then(success => {
-            if (!success) {
-                img.style.display = 'none';
-                photoContainer.style.background = student.gender === 'female' 
-                    ? 'linear-gradient(135deg, #ec407a, #ab47bc)'
-                    : 'linear-gradient(135deg, #42a5f5, #5e35b1)';
-                
-                const initials = document.createElement('div');
-                initials.className = 'student-initials';
-                initials.textContent = getInitials(student.name);
-                initials.style.cssText = `
-                    color: white;
-                    font-size: 2em;
-                    font-weight: bold;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 100%;
-                    height: 100%;
-                `;
-                photoContainer.appendChild(initials);
-            }
-        });
+        tryImageLoad(student.photo);
         
         photoContainer.appendChild(img);
         
@@ -768,16 +680,104 @@ function openStudentSelection(nominationId) {
         nameDiv.className = 'student-name';
         nameDiv.textContent = student.name;
         
-        studentCard.appendChild(photoContainer);
-        studentCard.appendChild(nameDiv);
+        desktopCard.appendChild(photoContainer);
+        desktopCard.appendChild(nameDiv);
         
-        studentCard.onclick = () => selectStudent(student.name, studentCard);
+        desktopCard.addEventListener('click', () => selectStudent(student.name, desktopCard));
         
-        studentsGrid.appendChild(studentCard);
+        desktopGrid.appendChild(desktopCard);
+        
+        // Mobile version
+        const mobileItem = document.createElement('div');
+        mobileItem.className = 'mobile-student-item';
+        
+        if (currentSelection === student.name) {
+            mobileItem.classList.add('selected');
+            selectedStudentName = student.name;
+            selectedElement = mobileItem;
+        }
+        
+        const mobilePhotoContainer = document.createElement('div');
+        mobilePhotoContainer.className = 'mobile-student-photo';
+        
+        const mobileImg = document.createElement('img');
+        mobileImg.alt = student.name;
+        mobileImg.loading = 'lazy';
+        
+        const tryMobileImageLoad = (src) => {
+            return new Promise((resolve) => {
+                mobileImg.onload = () => {
+                    resolve(true);
+                };
+                
+                mobileImg.onerror = () => {
+                    mobileImg.style.display = 'none';
+                    const initials = document.createElement('div');
+                    initials.className = 'mobile-student-initials';
+                    initials.textContent = getInitials(student.name);
+                    mobilePhotoContainer.appendChild(initials);
+                    resolve(false);
+                };
+                
+                mobileImg.src = src;
+            });
+        };
+        
+        tryMobileImageLoad(student.photo);
+        
+        mobilePhotoContainer.appendChild(mobileImg);
+        
+        const mobileInfoDiv = document.createElement('div');
+        mobileInfoDiv.className = 'mobile-student-info';
+        
+        const mobileNameDiv = document.createElement('div');
+        mobileNameDiv.className = 'mobile-student-name';
+        mobileNameDiv.textContent = student.name;
+        
+        mobileInfoDiv.appendChild(mobileNameDiv);
+        
+        mobileItem.appendChild(mobilePhotoContainer);
+        mobileItem.appendChild(mobileInfoDiv);
+        
+        if (isTouchDevice) {
+            // Улучшенная обработка для мобильных
+            mobileItem.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                selectStudent(student.name, mobileItem);
+            }, { passive: false });
+            
+            mobileItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                selectStudent(student.name, mobileItem);
+            });
+        } else {
+            mobileItem.addEventListener('click', () => selectStudent(student.name, mobileItem));
+        }
+        
+        mobileList.appendChild(mobileItem);
     });
 
-    confirmBtn.disabled = !currentSelection;
+    // Обновляем кнопку подтверждения
+    confirmBtn.disabled = !selectedStudentName;
+    
+    // Показываем модальное окно
     modal.style.display = 'block';
+    document.body.style.overflow = 'hidden'; // Блокируем скролл на основной странице
+    isModalOpen = true;
+    
+    // Улучшаем скроллинг для мобильных
+    if (isMobile) {
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.style.overflowY = 'auto';
+            modalContent.style.webkitOverflowScrolling = 'touch';
+            modalContent.style.touchAction = 'pan-y';
+        }
+        
+        setTimeout(() => {
+            modal.scrollTop = 0;
+        }, 50);
+    }
 }
 
 function getInitials(name) {
@@ -788,36 +788,53 @@ function getInitials(name) {
         .substring(0, 2);
 }
 
-function selectStudent(studentName, cardElement) {
-    const studentsGrid = document.getElementById('studentsGrid');
-    const confirmBtn = document.getElementById('confirmSelection');
+function selectStudent(studentName, element) {
+    const desktopGrid = document.getElementById('desktopStudentsGrid');
+    const mobileList = document.getElementById('mobileStudentsList');
+    const confirmBtn = document.getElementById('confirmBtn');
     
-    if (!studentsGrid || !confirmBtn) return;
-    
-    Array.from(studentsGrid.children).forEach(card => card.classList.remove('selected'));
-    cardElement.classList.add('selected');
-    confirmBtn.disabled = false;
+    if ((desktopGrid || mobileList) && confirmBtn) {
+        // Убираем галочку с предыдущего выбранного элемента
+        if (selectedElement) {
+            selectedElement.classList.remove('selected');
+        }
+        
+        // Ставим галочку на новый элемент
+        element.classList.add('selected');
+        selectedStudentName = studentName;
+        selectedElement = element;
+        
+        // Активируем кнопку подтверждения
+        confirmBtn.disabled = false;
+        
+        // Вибрация на мобильных
+        if (isTouchDevice && navigator.vibrate) {
+            navigator.vibrate(20);
+        }
+    }
 }
 
 function confirmSelection() {
-    if (!currentNomination || !currentUser) return;
+    if (!currentNomination || !currentUser || !selectedStudentName) return;
     
-    const selectedCard = document.querySelector('#studentModal .student-card.selected');
-    if (!selectedCard) return;
+    saveVoteToFirebase(currentNomination, selectedStudentName);
+    updateNominationDisplay(currentNomination, selectedStudentName);
     
-    const studentNameElement = selectedCard.querySelector('.student-name');
-    if (!studentNameElement) return;
+    showNotification(`Вы выбрали: ${selectedStudentName}`, 'success');
     
-    const studentName = studentNameElement.textContent;
-    
-    saveVoteToFirebase(currentNomination, studentName);
-    updateNominationDisplay(currentNomination, studentName);
-    
-    showNotification(`Вы выбрали: ${studentName}`, 'success');
-    
+    closeStudentModal();
+}
+
+function closeStudentModal() {
     const modal = document.getElementById('studentModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = ''; // Восстанавливаем скролл
+    }
     currentNomination = null;
+    selectedStudentName = null;
+    selectedElement = null;
+    isModalOpen = false;
 }
 
 function updateNominationDisplay(nominationId, studentName) {
@@ -834,10 +851,6 @@ function updateNominationDisplay(nominationId, studentName) {
         const buttonText = button.querySelector('.button-text');
         if (buttonText) buttonText.textContent = 'Изменить выбор';
     });
-    
-    setTimeout(() => {
-        alignButtonsHeight();
-    }, 100);
 }
 
 function showNotification(message, type = 'info') {
@@ -902,145 +915,14 @@ if (!document.querySelector('#notification-styles')) {
     document.head.appendChild(style);
 }
 
-function showMobileStudentList(nominationId) {
-    const nomination = nominations.find(n => n.id === nominationId);
-    if (!nomination) return;
-    
-    const overlay = document.getElementById('mobileStudentOverlay');
-    const list = document.getElementById('mobileStudentList');
-    const title = document.getElementById('mobileStudentTitle');
-    const listContainer = document.getElementById('mobileStudentsContainer');
-    const selectBtn = document.getElementById('mobileSelectBtn');
-    
-    if (!overlay || !list || !title || !listContainer || !selectBtn) return;
-    
-    title.textContent = nomination.title;
-    
-    listContainer.innerHTML = '';
-    mobileSelectedStudent = null;
-    
-    const allVotes = getAllVotes();
-    const userVotes = allVotes[currentUser?.id] || {};
-    const currentSelection = userVotes[nominationId];
-    
-    let filteredStudents;
-    if (nomination.gender) {
-        filteredStudents = students.filter(student => student.gender === nomination.gender);
-    } else {
-        filteredStudents = [...students].sort((a, b) => a.name.localeCompare(b.name));
-    }
-    
-    filteredStudents.forEach((student) => {
-        const listItem = document.createElement('div');
-        listItem.className = 'mobile-student-item';
-        
-        if (currentSelection === student.name) {
-            listItem.classList.add('selected');
-            mobileSelectedStudent = student.name;
-        }
-        
-        const photoContainer = document.createElement('div');
-        photoContainer.className = 'mobile-student-photo';
-        
-        const img = document.createElement('img');
-        img.alt = student.name;
-        img.loading = 'lazy';
-        
-        const imgLoader = new Image();
-        imgLoader.src = student.photo;
-        imgLoader.onload = function() {
-            img.src = student.photo;
-        };
-        imgLoader.onerror = function() {
-            const placeholder = document.createElement('div');
-            placeholder.className = 'mobile-photo-placeholder';
-            placeholder.textContent = getInitials(student.name);
-            photoContainer.innerHTML = '';
-            photoContainer.appendChild(placeholder);
-        };
-        
-        photoContainer.appendChild(img);
-        
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'mobile-student-info';
-        
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'mobile-student-name';
-        nameDiv.textContent = student.name;
-        
-        const genderDiv = document.createElement('div');
-        genderDiv.className = 'mobile-student-gender';
-        genderDiv.textContent = student.gender === 'female' ? 'Девушка' : 'Парень';
-        
-        infoDiv.appendChild(nameDiv);
-        infoDiv.appendChild(genderDiv);
-        
-        listItem.appendChild(photoContainer);
-        listItem.appendChild(infoDiv);
-        
-        listItem.addEventListener('click', function(e) {
-            e.stopPropagation();
-            
-            document.querySelectorAll('.mobile-student-item').forEach(item => {
-                item.classList.remove('selected');
-            });
-            
-            this.classList.add('selected');
-            mobileSelectedStudent = student.name;
-            
-            selectBtn.disabled = false;
-            
-            if (isTouchDevice && navigator.vibrate) {
-                navigator.vibrate(30);
-            }
-        });
-        
-        listContainer.appendChild(listItem);
-    });
-    
-    selectBtn.disabled = !currentSelection;
-    selectBtn.onclick = function() {
-        if (mobileSelectedStudent && mobileCurrentNomination) {
-            confirmMobileSelection();
-        }
-    };
-    
-    overlay.classList.add('active');
-    list.classList.add('active');
-    
-    document.body.style.overflow = 'hidden';
-}
-
-function closeMobileStudentList() {
-    const overlay = document.getElementById('mobileStudentOverlay');
-    const list = document.getElementById('mobileStudentList');
-    
-    if (overlay) overlay.classList.remove('active');
-    if (list) list.classList.remove('active');
-    
-    document.body.style.overflow = '';
-    
-    mobileSelectedStudent = null;
-    mobileCurrentNomination = null;
-}
-
-function confirmMobileSelection() {
-    if (!mobileSelectedStudent || !mobileCurrentNomination || !currentUser) return;
-    
-    saveVoteToFirebase(mobileCurrentNomination, mobileSelectedStudent);
-    updateNominationDisplay(mobileCurrentNomination, mobileSelectedStudent);
-    
-    showNotification(`Вы выбрали: ${mobileSelectedStudent}`, 'success');
-    
-    closeMobileStudentList();
-}
-
 function showPasswordModal() {
     const modal = document.getElementById('passwordModal');
     const passwordInput = document.getElementById('adminPassword');
     
     if (modal) {
         modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        isModalOpen = true;
         if (passwordInput) {
             passwordInput.value = '';
             setTimeout(() => passwordInput.focus(), 100);
@@ -1050,7 +932,11 @@ function showPasswordModal() {
 
 function closePasswordModal() {
     const modal = document.getElementById('passwordModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    isModalOpen = false;
 }
 
 function checkAdminPassword() {
@@ -1071,12 +957,20 @@ function checkAdminPassword() {
 
 function showAdminPanel() {
     const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel) adminPanel.style.display = 'block';
+    if (adminPanel) {
+        adminPanel.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        isModalOpen = true;
+    }
 }
 
 function hideAdminPanel() {
     const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel) adminPanel.style.display = 'none';
+    if (adminPanel) {
+        adminPanel.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    isModalOpen = false;
 }
 
 async function showLiveResults() {
@@ -1090,6 +984,8 @@ async function showLiveResults() {
     resultsGrid.innerHTML = '<div class="loading">Загрузка данных...</div>';
     
     modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    isModalOpen = true;
     hideAdminPanel();
     
     try {
@@ -1154,6 +1050,8 @@ async function showAllVoters() {
     resultsGrid.innerHTML = '<div class="loading">Загрузка данных...</div>';
     
     modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    isModalOpen = true;
     hideAdminPanel();
     
     try {
@@ -1213,7 +1111,11 @@ async function showAllVoters() {
 
 function closeResults() {
     const modal = document.getElementById('resultsModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    isModalOpen = false;
 }
 
 async function downloadResultsImage() {
@@ -1425,8 +1327,12 @@ async function resetVoting() {
 
 document.addEventListener('DOMContentLoaded', function() {
     if (isTouchDevice) {
-        document.addEventListener('touchstart', function() {}, {passive: true});
+        // Улучшенная обработка касаний для мобильных
+        document.addEventListener('touchstart', function(e) {
+            // Разрешаем все касания
+        }, {passive: true});
         
+        // Убираем блокировку двойного касания
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function(event) {
             const now = Date.now();
@@ -1436,13 +1342,20 @@ document.addEventListener('DOMContentLoaded', function() {
             lastTouchEnd = now;
         }, false);
         
-        document.body.style.overflowY = 'scroll';
+        // Улучшаем скроллинг
+        document.body.style.overflowY = 'auto';
         document.body.style.webkitOverflowScrolling = 'touch';
+        
+        // Разрешаем масштабирование
+        document.addEventListener('touchmove', function(e) {
+            // Разрешаем все движения касаниями
+        }, {passive: true});
     }
     
     initApp();
 });
 
+// Глобальные функции
 window.registerUser = registerUser;
 window.openStudentSelection = openStudentSelection;
 window.downloadResultsImage = downloadResultsImage;
@@ -1456,5 +1369,4 @@ window.showAllVoters = showAllVoters;
 window.closeResults = closeResults;
 window.resetVoting = resetVoting;
 window.confirmSelection = confirmSelection;
-window.closeMobileStudentList = closeMobileStudentList;
-window.confirmMobileSelection = confirmMobileSelection;
+window.closeStudentModal = closeStudentModal;
