@@ -131,15 +131,28 @@ function generateBrowserFingerprint() {
 }
 
 function checkExistingVote() {
-    const fingerprint = localStorage.getItem(BROWSER_FINGERPRINT_KEY);
-    if (!fingerprint) return null;
-    const allUsers = getAllUsers();
-    return Object.values(allUsers).find(user => user.browserFingerprint === fingerprint);
+    try {
+        const fingerprint = localStorage.getItem(BROWSER_FINGERPRINT_KEY);
+        console.log('Проверка отпечатка браузера:', fingerprint);
+        if (!fingerprint) return null;
+        
+        const allUsers = getAllUsers();
+        console.log('Все пользователи:', allUsers);
+        
+        const existingUser = Object.values(allUsers).find(user => user.browserFingerprint === fingerprint);
+        console.log('Найденный пользователь:', existingUser);
+        
+        return existingUser;
+    } catch (error) {
+        console.error('Ошибка при проверке существующего голоса:', error);
+        return null;
+    }
 }
 
 function saveBrowserFingerprint() {
     const fingerprint = generateBrowserFingerprint();
     localStorage.setItem(BROWSER_FINGERPRINT_KEY, fingerprint);
+    console.log('Сохранен отпечаток браузера:', fingerprint);
     return fingerprint;
 }
 
@@ -165,6 +178,7 @@ async function saveVoteToFirebase(nominationId, studentName) {
         return true;
         
     } catch (error) {
+        console.error('Ошибка сохранения в Firebase:', error);
         saveToLocalStorage(currentUser.id, nominationId, studentName);
         showNotification('Голос сохранен локально', 'info');
         return true;
@@ -176,6 +190,7 @@ function getAllVotes() {
         const data = localStorage.getItem(ALL_VOTES_KEY);
         return data ? JSON.parse(data) : {};
     } catch (e) {
+        console.error('Ошибка при чтении голосов:', e);
         return {};
     }
 }
@@ -183,7 +198,9 @@ function getAllVotes() {
 function saveAllVotes(votes) {
     try {
         localStorage.setItem(ALL_VOTES_KEY, JSON.stringify(votes));
-    } catch (e) {}
+    } catch (e) {
+        console.error('Ошибка при сохранении голосов:', e);
+    }
 }
 
 function getAllUsers() {
@@ -191,6 +208,7 @@ function getAllUsers() {
         const data = localStorage.getItem(ALL_USERS_KEY);
         return data ? JSON.parse(data) : {};
     } catch (e) {
+        console.error('Ошибка при чтении пользователей:', e);
         return {};
     }
 }
@@ -198,7 +216,9 @@ function getAllUsers() {
 function saveAllUsers(users) {
     try {
         localStorage.setItem(ALL_USERS_KEY, JSON.stringify(users));
-    } catch (e) {}
+    } catch (e) {
+        console.error('Ошибка при сохранении пользователей:', e);
+    }
 }
 
 function saveToLocalStorage(userId, nominationId, studentName) {
@@ -408,6 +428,7 @@ function initApp() {
     
     const existingVoter = checkExistingVote();
     if (existingVoter) {
+        console.log('Найден существующий пользователь:', existingVoter);
         showNotification(`Вы уже голосовали как: ${existingVoter.name}`, 'error');
         const savedUser = localStorage.getItem(CURRENT_USER_KEY);
         if (savedUser) {
@@ -416,6 +437,7 @@ function initApp() {
                 showVotingSection();
                 return;
             } catch (e) {
+                console.error('Ошибка при парсинге сохраненного пользователя:', e);
                 localStorage.removeItem(CURRENT_USER_KEY);
             }
         }
@@ -425,12 +447,15 @@ function initApp() {
     if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);
+            console.log('Восстановлен пользователь из localStorage:', currentUser);
             showVotingSection();
         } catch (e) {
+            console.error('Ошибка при восстановлении пользователя:', e);
             localStorage.removeItem(CURRENT_USER_KEY);
             showRegistrationSection();
         }
     } else {
+        console.log('Пользователь не найден, показываем регистрацию');
         showRegistrationSection();
     }
     
@@ -480,13 +505,20 @@ function showVotingSection() {
 }
 
 function registerUser() {
+    console.log('Регистрация пользователя...');
+    
     const userNameInput = document.getElementById('userName');
     const userEmailInput = document.getElementById('userEmail');
     
-    if (!userNameInput || !userEmailInput) return;
+    if (!userNameInput || !userEmailInput) {
+        console.error('Не найдены поля ввода');
+        return;
+    }
     
     const userName = userNameInput.value.trim();
     const userEmail = userEmailInput.value.trim();
+    
+    console.log('Введенные данные:', { userName, userEmail });
     
     if (!userName || !userEmail) {
         showNotification('Пожалуйста, заполните все поля', 'error');
@@ -499,17 +531,21 @@ function registerUser() {
     }
     
     const allUsers = getAllUsers();
+    console.log('Все зарегистрированные пользователи:', allUsers);
+    
     const existingUser = Object.values(allUsers).find(user => 
         user.email.toLowerCase() === userEmail.toLowerCase()
     );
     
     if (existingUser) {
+        console.log('Найден существующий пользователь с таким email:', existingUser);
         showNotification('Этот email уже зарегистрирован!', 'error');
         return;
     }
     
     const existingVoter = checkExistingVote();
     if (existingVoter) {
+        console.log('Пользователь уже голосовал:', existingVoter);
         showNotification(`Вы уже голосовали как: ${existingVoter.name}`, 'error');
         return;
     }
@@ -524,6 +560,8 @@ function registerUser() {
         browserFingerprint: browserFingerprint
     };
     
+    console.log('Создан новый пользователь:', currentUser);
+    
     allUsers[currentUser.id] = {
         name: currentUser.name,
         email: currentUser.email,
@@ -533,6 +571,7 @@ function registerUser() {
     saveAllUsers(allUsers);
     
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+    console.log('Пользователь сохранен в localStorage');
     
     showVotingSection();
     showNotification(`Добро пожаловать, ${userName}!`, 'success');
@@ -1238,6 +1277,7 @@ async function getAllVotesFromFirebase() {
         });
         return votes;
     } catch (error) {
+        console.error('Ошибка получения голосов из Firebase:', error);
         return getAllVotes();
     }
 }
@@ -1254,6 +1294,7 @@ async function getDetailedVotesFromFirebase() {
         });
         return votes;
     } catch (error) {
+        console.error('Ошибка получения детальных голосов из Firebase:', error);
         return [];
     }
 }
@@ -1312,6 +1353,8 @@ async function resetVoting() {
 
             localStorage.removeItem(ALL_VOTES_KEY);
             localStorage.removeItem(ALL_USERS_KEY);
+            localStorage.removeItem(CURRENT_USER_KEY);
+            localStorage.removeItem(BROWSER_FINGERPRINT_KEY);
             
             showNotification('Данные голосования сброшены!', 'success');
             
